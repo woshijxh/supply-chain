@@ -1,0 +1,14 @@
+server:
+  port: "8080"
+  mode: "debug"
+
+database:
+  host: "localhost"
+  port: 3306
+  user: "root"
+  password: "root"
+  dbname: "supply_chain"
+
+jwt:
+  secret: "supply-chain-jwt-secret-key-2024"
+  expiretime: 24

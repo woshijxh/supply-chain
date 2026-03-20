@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+bin/
+dist/
+*.exe
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Local config (contains sensitive data)
+.env
+.env.*
+
+# Test files
+test-*.js
+*.txt
+
+# Reference project (not part of this repo)
+nginxpulse/
+
+# Root package files (use project-specific ones in subdirectories)
+# (These are intentionally empty or reference only)
+root-package.json
+root-package-lock.json
