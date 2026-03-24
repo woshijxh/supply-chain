@@ -1,7 +1,10 @@
 import axios from 'axios'
 
+// 导出 baseURL 供其他地方使用
+export const baseURL = 'http://localhost:8080/api'
+
 const api = axios.create({
-  baseURL: 'http://localhost:8080/api',
+  baseURL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'

@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"supply-chain-server/internal/model"
 	"supply-chain-server/internal/repository"
+	"supply-chain-server/pkg/database"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type SalesReturnService struct {
@@ -94,19 +97,24 @@ func (s *SalesReturnService) Complete(id uint, refundAmount float64) error {
 		return fmt.Errorf("只有已批准状态的退货单可以完成")
 	}
 
-	// 退货入库
-	if s.inventoryService != nil {
-		for _, item := range ret.Items {
-			if item.ProductID > 0 && item.Quantity > 0 {
-				s.inventoryService.StockIn(item.ProductID, uint(item.Quantity), "")
+	// 使用事务确保数据一致性
+	return database.DB.Transaction(func(tx *gorm.DB) error {
+		// 退货入库
+		if s.inventoryService != nil {
+			for _, item := range ret.Items {
+				if item.ProductID > 0 && item.Quantity > 0 {
+					if err := s.inventoryService.StockIn(item.ProductID, uint(item.Quantity), ""); err != nil {
+						return fmt.Errorf("入库失败: %w", err)
+					}
+				}
 			}
 		}
-	}
 
-	ret.Status = "completed"
-	ret.RefundStatus = "refunded"
-	ret.RefundAmount = refundAmount
-	return s.repo.Update(ret)
+		ret.Status = "completed"
+		ret.RefundStatus = "refunded"
+		ret.RefundAmount = refundAmount
+		return s.repo.Update(ret)
+	})
 }
 
 // CountByStatus 按状态统计退货数量
@@ -201,17 +209,22 @@ func (s *ProcurementReturnService) Complete(id uint, refundAmount float64) error
 		return fmt.Errorf("只有已批准状态的退货单可以完成")
 	}
 
-	// 退货出库
-	if s.inventoryService != nil {
-		for _, item := range ret.Items {
-			if item.ProductID > 0 && item.Quantity > 0 {
-				s.inventoryService.StockOut(item.ProductID, uint(item.Quantity), "")
+	// 使用事务确保数据一致性
+	return database.DB.Transaction(func(tx *gorm.DB) error {
+		// 退货出库
+		if s.inventoryService != nil {
+			for _, item := range ret.Items {
+				if item.ProductID > 0 && item.Quantity > 0 {
+					if err := s.inventoryService.StockOut(item.ProductID, uint(item.Quantity), ""); err != nil {
+						return fmt.Errorf("出库失败: %w", err)
+					}
+				}
 			}
 		}
-	}
 
-	ret.Status = "completed"
-	ret.RefundStatus = "refunded"
-	ret.RefundAmount = refundAmount
-	return s.repo.Update(ret)
+		ret.Status = "completed"
+		ret.RefundStatus = "refunded"
+		ret.RefundAmount = refundAmount
+		return s.repo.Update(ret)
+	})
 }

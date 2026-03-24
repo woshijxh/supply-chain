@@ -59,3 +59,38 @@ func (h *ProductHandler) Create(c *gin.Context) {
 	}
 	response.Success(c, product)
 }
+
+func (h *ProductHandler) Update(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "无效的产品ID")
+		return
+	}
+
+	var product model.Product
+	if err := c.ShouldBindJSON(&product); err != nil {
+		response.Error(c, http.StatusBadRequest, "参数错误")
+		return
+	}
+
+	product.ID = uint(id)
+	if err := h.service.Update(&product); err != nil {
+		response.ServerError(c, err.Error())
+		return
+	}
+	response.Success(c, product)
+}
+
+func (h *ProductHandler) Delete(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "无效的产品ID")
+		return
+	}
+
+	if err := h.service.Delete(uint(id)); err != nil {
+		response.ServerError(c, err.Error())
+		return
+	}
+	response.Success(c, nil)
+}

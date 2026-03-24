@@ -8,12 +8,13 @@ import (
 	"supply-chain-server/internal/config"
 )
 
-func GenerateToken(userID uint, username, role string) (string, error) {
+func GenerateToken(userID uint, username, role, department string) (string, error) {
 	claims := jwt.MapClaims{
-		"userId":   userID,
-		"username": username,
-		"role":     role,
-		"exp":      time.Now().Add(time.Duration(config.AppConfig.JWT.ExpireTime) * time.Hour).Unix(),
+		"userId":     userID,
+		"username":   username,
+		"role":       role,
+		"department": department,
+		"exp":        time.Now().Add(time.Duration(config.AppConfig.JWT.ExpireTime) * time.Hour).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

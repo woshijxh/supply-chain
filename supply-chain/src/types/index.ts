@@ -1,5 +1,5 @@
 export interface Supplier {
-  id: string
+  id: number
   code: string
   name: string
   contact: string
@@ -13,7 +13,7 @@ export interface Supplier {
   bankAccount: string
   taxNumber: string
   rating: number
-  status: 'active' | 'inactive'
+  status: number  // 0-禁用 1-启用
   remark: string
   createdAt: string
   updatedAt: string
@@ -31,38 +31,40 @@ export interface Product {
   minStock: number
   maxStock: number
   description: string
-  status: 'active' | 'inactive'
+  status: number  // 0-禁用 1-启用
   createdAt: string
 }
 
 export interface InventoryItem {
-  id: string
-  productId: string
-  productCode: string
-  productName: string
-  sku: string
-  category: string
+  id: number
+  productId: number
+  product: Product
   warehouse: string
   quantity: number
   availableQty: number
   lockedQty: number
-  minStock: number
-  maxStock: number
-  unit: string
-  costPrice: number
-  salePrice: number
   location: string
   batchNo: string
   expiryDate: string
-  status: 'normal' | 'low' | 'over' | 'locked'
+  status: string  // normal, low, over
+  // 扁平化的产品信息（从product展开）
+  productCode?: string
+  productName?: string
+  sku?: string
+  category?: string
+  unit?: string
+  minStock?: number
+  maxStock?: number
+  costPrice?: number
+  salePrice?: number
 }
 
 export interface ProcurementOrder {
-  id: string
+  id: number
   orderNo: string
-  supplierId: string
-  supplierName: string
+  supplierId: number
   supplier?: Supplier
+  supplierName?: string
   totalAmount: number
   orderDate: string
   expectedDate: string
@@ -80,7 +82,8 @@ export interface ProcurementItem {
   id: number
   orderId: number
   productId: number
-  productCode: string
+  product?: Product
+  productCode?: string
   productName: string
   quantity: number
   unit: string
@@ -90,9 +93,9 @@ export interface ProcurementItem {
 }
 
 export interface SalesOrder {
-  id: string
+  id: number
   orderNo: string
-  customerId: string
+  customerId: number
   customerName: string
   customerPhone: string
   customerAddress: string
@@ -102,7 +105,7 @@ export interface SalesOrder {
   shippingFee: number
   orderDate: string
   deliveryDate: string
-  status: 'pending' | 'confirmed' | 'shipping' | 'completed' | 'cancelled' | 'refunded'
+  status: 'pending' | 'confirmed' | 'shipping' | 'completed' | 'cancelled'
   paymentMethod: string
   paymentStatus: 'pending' | 'paid' | 'refunded'
   remark: string
@@ -112,10 +115,10 @@ export interface SalesOrder {
 }
 
 export interface SalesOrderItem {
-  id: string
-  orderId: string
+  id: number
+  orderId: number
   productId: number
-  productCode: string
+  productCode?: string
   productName: string
   quantity: number
   unit: string
@@ -125,10 +128,10 @@ export interface SalesOrderItem {
 }
 
 export interface LogisticsOrder {
-  id: string
+  id: number
   trackingNo: string
   carrier: string
-  salesOrderId: string
+  salesOrderId: number
   salesOrderNo: string
   status: 'pending' | 'picked' | 'in_transit' | 'delivering' | 'delivered' | 'returned'
   senderName: string

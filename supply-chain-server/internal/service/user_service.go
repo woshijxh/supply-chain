@@ -86,13 +86,18 @@ func (s *UserService) LoginWithRoles(username, password string) (string, *UserWi
 		return "", nil, errors.New("密码错误")
 	}
 
-	token, err := utils.GenerateToken(user.ID, user.Username, user.Role)
+	// 获取完整用户信息（包含角色权限）
+	userWithRoles, err := s.repo.GetByIDWithRoles(user.ID)
+	if err != nil {
+		return "", nil, errors.New("获取用户信息失败")
+	}
+
+	token, err := utils.GenerateToken(user.ID, user.Username, user.Role, user.Department)
 	if err != nil {
 		return "", nil, errors.New("生成token失败")
 	}
 
-	userWithRoles := s.convertToUserWithRoles(user)
-	return token, userWithRoles, nil
+	return token, s.convertToUserWithRoles(userWithRoles), nil
 }
 
 func (s *UserService) ExistsByUsername(username string) bool {
@@ -187,13 +192,9 @@ func (s *UserService) UpdateAvatar(userID uint, avatar string) error {
 
 // convertToUserWithRoles 将User模型转换为带角色权限的用户信息
 func (s *UserService) convertToUserWithRoles(user *model.User) *UserWithRoles {
-	var roles []model.Role
+	roles := user.Roles
 	var perms []model.Permission
 
-	// 预加载角色和权限
-	s.repo.GetByIDWithRoles(user.ID)
-
-	roles = user.Roles
 	// 从角色中获取权限
 	for _, role := range roles {
 		perms = append(perms, role.Permissions...)

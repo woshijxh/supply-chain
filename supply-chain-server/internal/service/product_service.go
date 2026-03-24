@@ -24,3 +24,11 @@ func (s *ProductService) GetByID(id uint) (*model.Product, error) {
 func (s *ProductService) Create(product *model.Product) error {
 	return s.repo.Create(product)
 }
+
+func (s *ProductService) Update(product *model.Product) error {
+	return s.repo.Update(product)
+}
+
+func (s *ProductService) Delete(id uint) error {
+	return s.repo.Delete(id)
+}

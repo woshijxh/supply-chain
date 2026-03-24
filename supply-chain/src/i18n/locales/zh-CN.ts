@@ -9,7 +9,14 @@ export default {
     procurement: '采购管理',
     inventory: '库存管理',
     sales: '销售订单',
-    logistics: '物流跟踪'
+    logistics: '物流跟踪',
+    customers: '客户管理',
+    products: '产品管理',
+    users: '用户管理',
+    roles: '角色管理',
+    permissions: '权限管理',
+    trace: '商品追溯',
+    returns: '退货管理'
   },
   common: {
     add: '新增',

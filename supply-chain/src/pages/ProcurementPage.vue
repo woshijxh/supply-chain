@@ -247,7 +247,7 @@ const approveForm = ref({
 })
 
 const form = ref({
-  supplierId: '',
+  supplierId: 0 as number,
   supplierName: '',
   warehouse: '上海仓库',
   expectedDateValue: null as Date | null,
@@ -276,7 +276,7 @@ const statusOptions = [
 
 const warehouseOptions = ['上海仓库', '深圳仓库', '杭州仓库', '广州仓库']
 
-const supplierOptions = ref<{ label: string; value: string }[]>([])
+const supplierOptions = ref<{ label: string; value: number }[]>([])
 
 const formatNumber = (num: number) => num.toLocaleString('zh-CN')
 
@@ -352,12 +352,14 @@ const onSupplierChange = (event: any) => {
 
 const onProductSelect = (index: number) => {
   const item = form.value.items[index]
-  const product = products.value.find(p => p.id === item.productId)
+  const product = products.value.find(p => String(p.id) === String(item.productId))
   if (product) {
+    item.productId = product.id
     item.productName = product.name
+    item.productCode = product.code || ''
     item.unit = product.unit || '个'
     item.unitPrice = product.costPrice || 0
-    calcAmount(index)
+    item.amount = (item.quantity || 1) * (item.unitPrice || 0)
   }
 }
 
@@ -387,7 +389,7 @@ const calcAmount = (index: number) => {
 
 const openDialog = () => {
   form.value = {
-    supplierId: '',
+    supplierId: 0,
     supplierName: '',
     warehouse: '上海仓库',
     expectedDateValue: null,

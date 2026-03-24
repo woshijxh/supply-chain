@@ -144,6 +144,8 @@ func Setup() *gin.Engine {
 		protected.GET("/products", middleware.RBACAuth("product", "read"), productHandler.List)
 		protected.GET("/products/:id", middleware.RBACAuth("product", "read"), productHandler.Get)
 		protected.POST("/products", middleware.RBACAuth("product", "create"), productHandler.Create)
+		protected.PUT("/products/:id", middleware.RBACAuth("product", "update"), productHandler.Update)
+		protected.DELETE("/products/:id", middleware.RBACAuth("product", "delete"), productHandler.Delete)
 
 		// 采购
 		protected.GET("/procurement", middleware.RBACAuth("procurement", "read"), procurementHandler.List)

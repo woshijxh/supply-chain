@@ -66,9 +66,18 @@ func (r *RoleRepository) GetAll() ([]model.Role, error) {
 }
 
 func (r *RoleRepository) AssignPermissions(roleID uint, permissionIDs []uint) error {
+	// 获取角色
+	var role model.Role
+	if err := r.db.First(&role, roleID).Error; err != nil {
+		return err
+	}
+
+	// 获取权限
 	var permissions []model.Permission
 	if err := r.db.Find(&permissions, permissionIDs).Error; err != nil {
 		return err
 	}
-	return r.db.Model(&model.Role{}).First(&model.Role{}, roleID).Error
+
+	// 使用 GORM 的 Association 模式替换角色的权限
+	return r.db.Model(&role).Association("Permissions").Replace(&permissions)
 }

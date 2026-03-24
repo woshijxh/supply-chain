@@ -47,7 +47,7 @@ func (r *InventoryRepository) List(page, pageSize int, status, warehouse string)
 
 func (r *InventoryRepository) GetByProductIDForUpdate(tx *gorm.DB, productID uint, warehouse string) (*model.Inventory, error) {
 	var item model.Inventory
-	query := tx.Where("product_id = ?", productID)
+	query := tx.Set("gorm:query_option", "FOR UPDATE").Preload("Product").Where("product_id = ?", productID)
 	if warehouse != "" {
 		query = query.Where("warehouse = ?", warehouse)
 	}

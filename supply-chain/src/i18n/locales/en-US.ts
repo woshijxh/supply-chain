@@ -9,7 +9,14 @@ export default {
     procurement: 'Procurement',
     inventory: 'Inventory',
     sales: 'Sales Orders',
-    logistics: 'Logistics'
+    logistics: 'Logistics',
+    customers: 'Customers',
+    products: 'Products',
+    users: 'Users',
+    roles: 'Roles',
+    permissions: 'Permissions',
+    trace: 'Product Trace',
+    returns: 'Returns'
   },
   common: {
     add: 'Add',

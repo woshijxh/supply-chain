@@ -51,5 +51,11 @@ func autoMigrate() error {
 		&model.SalesOrderItem{},
 		&model.LogisticsOrder{},
 		&model.LogisticsTimeline{},
+		&model.Customer{},
+		&model.InventoryLog{},
+		&model.SalesReturn{},
+		&model.SalesReturnItem{},
+		&model.ProcurementReturn{},
+		&model.ProcurementReturnItem{},
 	)
 }

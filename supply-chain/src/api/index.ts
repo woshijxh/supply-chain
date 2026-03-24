@@ -25,11 +25,17 @@ export const productApi = {
   list: (page = 1, pageSize = 100, keyword = '') =>
     api.get('/products', { params: { page, pageSize, keyword } }),
 
-  get: (id: string) =>
+  get: (id: string | number) =>
     api.get(`/products/${id}`),
 
   create: (data: any) =>
-    api.post('/products', data)
+    api.post('/products', data),
+
+  update: (id: string | number, data: any) =>
+    api.put(`/products/${id}`, data),
+
+  delete: (id: string | number) =>
+    api.delete(`/products/${id}`)
 }
 
 export const supplierApi = {

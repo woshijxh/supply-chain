@@ -48,3 +48,11 @@ func (r *ProductRepository) List(page, pageSize int, keyword string) ([]model.Pr
 func (r *ProductRepository) Create(product *model.Product) error {
 	return r.db.Create(product).Error
 }
+
+func (r *ProductRepository) Update(product *model.Product) error {
+	return r.db.Save(product).Error
+}
+
+func (r *ProductRepository) Delete(id uint) error {
+	return r.db.Delete(&model.Product{}, id).Error
+}

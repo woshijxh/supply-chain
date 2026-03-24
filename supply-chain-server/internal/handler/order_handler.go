@@ -24,6 +24,7 @@ type ProcurementOrderRequest struct {
 }
 
 type ProcurementItemRequest struct {
+	ProductID   uint    `json:"productId"`
 	ProductName string  `json:"productName"`
 	Quantity    int     `json:"quantity"`
 	Unit        string  `json:"unit"`
@@ -117,31 +118,16 @@ func (h *ProcurementHandler) Create(c *gin.Context) {
 		expectedDate = &model.Date{Time: parsed}
 	}
 
-	// 转换 items - look up product ID by name
+	// 转换 items
 	items := make([]model.ProcurementItem, len(req.Items))
 	for i, item := range req.Items {
-		// Look up product by name
-		product, err := h.productRepo.GetByName(item.ProductName)
-		if err != nil {
-			// If product not found, we can still save without ProductID
-			// or return an error depending on business logic
-			// For now, continue without ProductID (ProductID will be 0)
-			items[i] = model.ProcurementItem{
-				ProductName: item.ProductName,
-				Quantity:    item.Quantity,
-				Unit:        item.Unit,
-				UnitPrice:   item.UnitPrice,
-				Amount:      item.Amount,
-			}
-		} else {
-			items[i] = model.ProcurementItem{
-				ProductID:   product.ID,
-				ProductName: item.ProductName,
-				Quantity:    item.Quantity,
-				Unit:        item.Unit,
-				UnitPrice:   item.UnitPrice,
-				Amount:      item.Amount,
-			}
+		items[i] = model.ProcurementItem{
+			ProductID:   item.ProductID,
+			ProductName: item.ProductName,
+			Quantity:    item.Quantity,
+			Unit:        item.Unit,
+			UnitPrice:   item.UnitPrice,
+			Amount:      item.Amount,
 		}
 	}
 

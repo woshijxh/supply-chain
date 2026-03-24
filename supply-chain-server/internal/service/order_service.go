@@ -114,18 +114,15 @@ func (s *SalesService) Create(order *model.SalesOrder) error {
 		}
 
 		// 锁定库存
-		for _, item := range order.Items {
+		for idx, item := range order.Items {
 			if item.ProductID == 0 || item.Quantity <= 0 {
 				continue
 			}
 			if err := s.inventoryService.LockStock(uint(item.ProductID), uint(item.Quantity), ""); err != nil {
 				// 如果锁定失败，需要回滚之前锁定的库存
-				for i := range order.Items {
-					if i >= len(order.Items) || order.Items[i].ProductID == item.ProductID {
-						break
-					}
-					if order.Items[i].ProductID > 0 && order.Items[i].Quantity > 0 {
-						s.inventoryService.UnlockStock(uint(order.Items[i].ProductID), uint(order.Items[i].Quantity), "")
+				for j := 0; j < idx; j++ {
+					if order.Items[j].ProductID > 0 && order.Items[j].Quantity > 0 {
+						s.inventoryService.UnlockStock(uint(order.Items[j].ProductID), uint(order.Items[j].Quantity), "")
 					}
 				}
 				return fmt.Errorf("锁定库存失败: %w", err)

@@ -60,6 +60,7 @@ import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { authApi } from '@/api'
 import { useUserStore } from '@/stores/user'
+import { baseURL } from '@/api/request'
 
 const router = useRouter()
 const toast = useToast()
@@ -76,7 +77,7 @@ const form = ref({
 
 async function refreshCaptcha() {
   try {
-    const response = await fetch('http://localhost:8080/api/auth/captcha')
+    const response = await fetch(`${baseURL}/auth/captcha`)
     const blob = await response.blob()
     // Try different header name cases
     let captchaIdHeader = response.headers.get('X-Captcha-ID')

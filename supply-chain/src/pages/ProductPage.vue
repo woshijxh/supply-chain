@@ -40,8 +40,8 @@
         <Column field="maxStock" header="最高库存"></Column>
         <Column field="status" header="状态">
           <template #body="{ data }">
-            <span :class="['tag', data.status === 'active' ? 'success' : 'warning']">
-              {{ data.status === 'active' ? '启用' : '禁用' }}
+            <span :class="['tag', data.status === 1 ? 'success' : 'warning']">
+              {{ data.status === 1 ? '启用' : '禁用' }}
             </span>
           </template>
         </Column>
@@ -143,14 +143,14 @@ const form = ref({
   salePrice: 0,
   minStock: 0,
   maxStock: 0,
-  status: 'active',
+  status: 1,
   description: '',
   code: ''
 })
 
 const statusOptions = [
-  { label: '启用', value: 'active' },
-  { label: '禁用', value: 'inactive' }
+  { label: '启用', value: 1 },
+  { label: '禁用', value: 0 }
 ]
 
 const formatNumber = (num: number) => {
@@ -193,7 +193,7 @@ const openDialog = (product?: Product) => {
       salePrice: product.salePrice || 0,
       minStock: product.minStock || 0,
       maxStock: product.maxStock || 0,
-      status: product.status || 'active',
+      status: product.status ?? 1,
       description: product.description || '',
       code: product.code || ''
     }
@@ -209,7 +209,7 @@ const openDialog = (product?: Product) => {
       salePrice: 0,
       minStock: 0,
       maxStock: 0,
-      status: 'active',
+      status: 1,
       description: '',
       code: ''
     }
@@ -238,7 +238,13 @@ const handleSave = async () => {
       description: form.value.description
     }
 
-    const res: any = await productApi.create(data)
+    let res: any
+    if (isEdit.value && currentId.value) {
+      res = await productApi.update(currentId.value, data)
+    } else {
+      res = await productApi.create(data)
+    }
+
     if (res.code === 0) {
       toast.add({ severity: 'success', summary: t('common.saveSuccess'), life: 5000 })
       dialogVisible.value = false

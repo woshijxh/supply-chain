@@ -85,8 +85,7 @@ func (h *DashboardHandler) Stats(c *gin.Context) {
 	_, customerCount, _ := h.customerService.List(1, 1000, "")
 
 	// 获取产品数量
-	products, _, _ := h.productService.List(1, 1000, "")
-	productCount := products
+	_, productCount, _ := h.productService.List(1, 1000, "")
 
 	// 获取待确认销售订单
 	pendingSales, _ := h.salesService.CountByStatus("pending")

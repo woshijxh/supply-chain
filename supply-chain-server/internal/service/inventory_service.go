@@ -49,11 +49,14 @@ func (s *InventoryService) StockIn(productID, quantity uint, warehouse string) e
 	}
 
 	return database.DB.Transaction(func(tx *gorm.DB) error {
-		// 获取产品名称
+		// 获取产品信息和名称
 		var productName string
+		var minStock, maxStock int
 		if s.productRepo != nil {
 			if product, err := s.productRepo.GetByID(productID); err == nil {
 				productName = product.Name
+				minStock = product.MinStock
+				maxStock = product.MaxStock
 			}
 		}
 
@@ -69,6 +72,9 @@ func (s *InventoryService) StockIn(productID, quantity uint, warehouse string) e
 				LockedQty:    0,
 				Status:       "normal",
 			}
+			// 初始化 Product 用于状态计算
+			item.Product = model.Product{MinStock: minStock, MaxStock: maxStock}
+			s.updateStatus(item)
 			if err := s.repo.CreateInTransaction(tx, item); err != nil {
 				return err
 			}
@@ -205,9 +211,9 @@ func (s *InventoryService) StockOut(productID, quantity uint, warehouse string) 
 func (s *InventoryService) updateStatus(item *model.Inventory) {
 	if item.Quantity <= 0 {
 		item.Status = "low"
-	} else if item.Product.MinStock > 0 && item.Quantity < item.Product.MinStock {
+	} else if item.Product.ID > 0 && item.Product.MinStock > 0 && item.Quantity < item.Product.MinStock {
 		item.Status = "low"
-	} else if item.Product.MaxStock > 0 && item.Quantity > item.Product.MaxStock {
+	} else if item.Product.ID > 0 && item.Product.MaxStock > 0 && item.Quantity > item.Product.MaxStock {
 		item.Status = "over"
 	} else {
 		item.Status = "normal"

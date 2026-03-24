@@ -13,85 +13,85 @@ const routes: RouteRecordRaw[] = [
     path: '/',
     name: 'dashboard',
     component: () => import('@/pages/DashboardPage.vue'),
-    meta: { title: 'dashboard', requiresAuth: true, permission: 'dashboard:read' }
+    meta: { title: '仪表盘', icon: 'ri-dashboard-3-line', requiresAuth: true, permission: 'dashboard:read' }
   },
   {
     path: '/suppliers',
     name: 'suppliers',
     component: () => import('@/pages/SupplierPage.vue'),
-    meta: { title: 'suppliers', requiresAuth: true, permission: 'supplier:read' }
+    meta: { title: '供应商管理', icon: 'ri-building-line', requiresAuth: true, permission: 'supplier:read' }
   },
   {
     path: '/customers',
     name: 'customers',
     component: () => import('@/pages/CustomerPage.vue'),
-    meta: { title: '客户管理', requiresAuth: true, permission: 'customer:read' }
+    meta: { title: '客户管理', icon: 'ri-user-heart-line', requiresAuth: true, permission: 'customer:read' }
   },
   {
     path: '/products',
     name: 'products',
     component: () => import('@/pages/ProductPage.vue'),
-    meta: { title: '产品管理', requiresAuth: true, permission: 'product:read' }
+    meta: { title: '产品管理', icon: 'ri-box-3-line', requiresAuth: true, permission: 'product:read' }
   },
   {
     path: '/procurement',
     name: 'procurement',
     component: () => import('@/pages/ProcurementPage.vue'),
-    meta: { title: 'procurement', requiresAuth: true, permission: 'procurement:read' }
+    meta: { title: '采购管理', icon: 'ri-shopping-cart-line', requiresAuth: true, permission: 'procurement:read' }
   },
   {
     path: '/inventory',
     name: 'inventory',
     component: () => import('@/pages/InventoryPage.vue'),
-    meta: { title: 'inventory', requiresAuth: true, permission: 'inventory:read' }
+    meta: { title: '库存管理', icon: 'ri-store-2-line', requiresAuth: true, permission: 'inventory:read' }
   },
   {
     path: '/sales',
     name: 'sales',
     component: () => import('@/pages/SalesPage.vue'),
-    meta: { title: 'sales', requiresAuth: true, permission: 'sales:read' }
+    meta: { title: '销售订单', icon: 'ri-file-list-3-line', requiresAuth: true, permission: 'sales:read' }
   },
   {
     path: '/logistics',
     name: 'logistics',
     component: () => import('@/pages/LogisticsPage.vue'),
-    meta: { title: 'logistics', requiresAuth: true, permission: 'logistics:read' }
+    meta: { title: '物流跟踪', icon: 'ri-truck-line', requiresAuth: true, permission: 'logistics:read' }
   },
   {
     path: '/users',
     name: 'users',
     component: () => import('@/pages/UserPage.vue'),
-    meta: { title: '用户管理', requiresAuth: true, permission: 'user:read' }
+    meta: { title: '用户管理', icon: 'ri-user-settings-line', requiresAuth: true, permission: 'user:read' }
   },
   {
     path: '/roles',
     name: 'roles',
     component: () => import('@/pages/RolePage.vue'),
-    meta: { title: '角色管理', requiresAuth: true, permission: 'role:read' }
+    meta: { title: '角色管理', icon: 'ri-shield-line', requiresAuth: true, permission: 'role:read' }
   },
   {
     path: '/permissions',
     name: 'permissions',
     component: () => import('@/pages/PermissionPage.vue'),
-    meta: { title: '权限管理', requiresAuth: true, permission: 'permission:read' }
+    meta: { title: '权限管理', icon: 'ri-lock-line', requiresAuth: true, permission: 'permission:read' }
   },
   {
     path: '/settings',
     name: 'settings',
     component: () => import('@/pages/SettingsPage.vue'),
-    meta: { title: '用户设置', requiresAuth: true }
+    meta: { title: '用户设置', icon: 'ri-settings-3-line', requiresAuth: true }
   },
   {
     path: '/returns',
     name: 'returns',
     component: () => import('@/pages/ReturnPage.vue'),
-    meta: { title: '退货管理', requiresAuth: true, permission: 'sales:read' }
+    meta: { title: '退货管理', icon: 'ri-arrow-go-back-line', requiresAuth: true, permission: 'sales:read' }
   },
   {
     path: '/trace',
     name: 'trace',
     component: () => import('@/pages/TracePage.vue'),
-    meta: { title: '商品追溯', requiresAuth: true, permission: 'trace:read' }
+    meta: { title: '商品追溯', icon: 'ri-search-eye-line', requiresAuth: true, permission: 'trace:read' }
   }
 ]
 

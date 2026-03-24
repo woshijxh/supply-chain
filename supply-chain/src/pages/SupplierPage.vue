@@ -157,7 +157,7 @@ const rows = ref(10)
 const totalRecords = ref(0)
 const first = ref(0)
 
-const form = ref<Partial<Supplier>>({
+const form = ref<Omit<Partial<Supplier>, 'status'> & { status: string }>({
   code: '',
   name: '',
   contact: '',
@@ -277,7 +277,10 @@ const openDialog = (supplier?: Supplier) => {
   if (supplier) {
     isEdit.value = true
     editingId.value = String(supplier.id)
-    form.value = { ...supplier }
+    form.value = {
+      ...supplier,
+      status: mapStatusFromBackend(supplier.status)
+    }
   } else {
     isEdit.value = false
     editingId.value = ''

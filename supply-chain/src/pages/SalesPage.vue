@@ -379,8 +379,8 @@ const fetchOrders = async () => {
 
 const addItem = () => {
   form.value.items.push({
-    id: '',
-    orderId: '',
+    id: 0,
+    orderId: 0,
     productId: 0,
     productCode: '',
     productName: '',

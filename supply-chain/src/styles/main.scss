@@ -10,19 +10,25 @@ $info-color: #06b6d4;
   --primary-rgb: #{$primary-color-rgb};
   --primary-strong: #2563eb;
   --primary-soft: rgba(#{$primary-color-rgb}, 0.1);
-  
+
   --text: #1e293b;
+  --text-secondary: #475569;
   --text-muted: #64748b;
   --text-light: #94a3b8;
-  
+
   --bg: #f8fafc;
   --bg-elevated: #ffffff;
   --border: #e2e8f0;
   --border-light: #f1f5f9;
-  
+
   --panel: #ffffff;
   --input-bg: #ffffff;
-  
+
+  --surface-card: #ffffff;
+  --surface-border: #e2e8f0;
+  --surface-ground: #f1f5f9;
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+
   --success: #{$success-color};
   --warning: #{$warning-color};
   --danger: #{$danger-color};
@@ -42,17 +48,23 @@ $info-color: #06b6d4;
 
 .dark-mode {
   --text: #f1f5f9;
+  --text-secondary: #cbd5e1;
   --text-muted: #94a3b8;
   --text-light: #64748b;
-  
+
   --bg: #0f172a;
   --bg-elevated: #1e293b;
   --border: #334155;
   --border-light: #1e293b;
-  
+
   --panel: #1e293b;
   --input-bg: #0f172a;
-  
+
+  --surface-card: #1e293b;
+  --surface-border: #334155;
+  --surface-ground: #0f172a;
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
   --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
@@ -301,8 +313,10 @@ html, body {
 .main-content {
   flex: 1;
   margin-left: 260px;
-  padding: 24px;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
 }
 
 .page-header {

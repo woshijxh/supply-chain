@@ -83,7 +83,45 @@
       </div>
     </aside>
     <main class="main-content" :class="{ 'full-screen': isLoginPage }">
-      <RouterView />
+      <!-- 标签栏 -->
+      <div v-if="!isLoginPage" class="tabs-bar">
+        <div class="tabs-wrapper">
+          <div
+            v-for="tab in tabsStore.tabs"
+            :key="tab.path"
+            class="tab-item"
+            :class="{ active: tabsStore.activeTab === tab.path }"
+            @click="handleTabClick(tab.path)"
+            @contextmenu.prevent="showContextMenu($event, tab)"
+          >
+            <i v-if="tab.icon" :class="tab.icon" class="tab-icon"></i>
+            <span class="tab-title">{{ tab.title }}</span>
+            <i
+              v-if="tab.closable"
+              class="ri-close-line tab-close"
+              @click.stop="handleTabClose(tab.path)"
+            ></i>
+          </div>
+        </div>
+      </div>
+      <!-- 右键菜单 -->
+      <div
+        v-if="contextMenuVisible"
+        class="context-menu"
+        :style="{ left: contextMenuX + 'px', top: contextMenuY + 'px' }"
+      >
+        <div class="context-menu-item" @click="handleCloseOther">关闭其他</div>
+        <div class="context-menu-item" @click="handleCloseRight">关闭右侧</div>
+        <div class="context-menu-item" @click="handleCloseAll">关闭所有</div>
+      </div>
+      <!-- 内容区 -->
+      <div class="page-content" :class="{ 'no-tabs': isLoginPage }">
+        <RouterView v-slot="{ Component }">
+          <keep-alive>
+            <component :is="Component" :key="route.path" />
+          </keep-alive>
+        </RouterView>
+      </div>
     </main>
     <Toast />
     <ConfirmDialog />
@@ -95,18 +133,53 @@ import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter, RouterLink, RouterView } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
+import { useTabsStore, type Tab } from '@/stores/tabs'
 import { setWatermark, removeWatermark } from '@/utils/watermark'
 
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
 const userStore = useUserStore()
+const tabsStore = useTabsStore()
+
+// 确保 tabs 初始化
+tabsStore.init()
 
 const isDark = ref(localStorage.getItem('darkMode') === 'true')
+
+// 右键菜单状态
+const contextMenuVisible = ref(false)
+const contextMenuX = ref(0)
+const contextMenuY = ref(0)
+const selectedTab = ref<Tab | null>(null)
 
 // 初始化用户状态
 onMounted(() => {
   userStore.init()
+  // 添加初始路由
+  if (route.meta.requiresAuth) {
+    tabsStore.addTab(route)
+  }
+})
+
+// 使用路由守卫监听路由变化
+router.afterEach((to) => {
+  if (to.meta.requiresAuth) {
+    tabsStore.addTab(to)
+  }
+})
+
+// 点击其他地方关闭右键菜单
+const handleClickOutside = () => {
+  contextMenuVisible.value = false
+}
+
+watch(contextMenuVisible, (visible) => {
+  if (visible) {
+    document.addEventListener('click', handleClickOutside)
+  } else {
+    document.removeEventListener('click', handleClickOutside)
+  }
 })
 
 // 菜单项权限控制
@@ -125,6 +198,57 @@ const canViewPermissions = computed(() => userStore.hasPermission('permission:re
 
 const isLoginPage = computed(() => route.path === '/login')
 const isActive = (path: string) => route.path === path
+
+// 标签点击
+const handleTabClick = (path: string) => {
+  tabsStore.setActiveTab(path)
+  router.push(path)
+}
+
+// 标签关闭
+const handleTabClose = (path: string) => {
+  const newPath = tabsStore.closeTab(path)
+  if (newPath && newPath !== route.path) {
+    router.push(newPath)
+  }
+}
+
+// 显示右键菜单
+const showContextMenu = (event: MouseEvent, tab: Tab) => {
+  event.preventDefault()
+  selectedTab.value = tab
+  contextMenuX.value = event.clientX
+  contextMenuY.value = event.clientY
+  contextMenuVisible.value = true
+}
+
+// 关闭其他
+const handleCloseOther = () => {
+  if (selectedTab.value) {
+    tabsStore.closeOtherTabs(selectedTab.value.path)
+    if (route.path !== selectedTab.value.path) {
+      router.push(selectedTab.value.path)
+    }
+  }
+  contextMenuVisible.value = false
+}
+
+// 关闭右侧
+const handleCloseRight = () => {
+  if (selectedTab.value) {
+    tabsStore.closeRightTabs(selectedTab.value.path)
+  }
+  contextMenuVisible.value = false
+}
+
+// 关闭所有
+const handleCloseAll = () => {
+  const path = tabsStore.closeAllTabs()
+  if (route.path !== path) {
+    router.push(path)
+  }
+  contextMenuVisible.value = false
+}
 
 const handleLogout = () => {
   userStore.clearUser()
@@ -156,3 +280,135 @@ onUnmounted(() => {
   removeWatermark()
 })
 </script>
+
+<style scoped>
+.tabs-bar {
+  display: flex;
+  align-items: center;
+  background: var(--panel);
+  padding: 8px 16px 0;
+  height: 48px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tabs-wrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  flex: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabs-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  height: 40px;
+  background: var(--surface-ground);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+  user-select: none;
+  position: relative;
+  margin-bottom: -1px;
+}
+
+.tab-item:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.tab-item.active {
+  background: var(--bg);
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.tab-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--bg);
+}
+
+.tab-title {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tab-icon {
+  font-size: 15px;
+  opacity: 0.7;
+}
+
+.tab-item.active .tab-icon {
+  opacity: 1;
+}
+
+.tab-close {
+  font-size: 14px;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+}
+
+.tab-close:hover {
+  opacity: 1;
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.context-menu {
+  position: fixed;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  padding: 4px 0;
+  min-width: 120px;
+  z-index: 1000;
+}
+
+.context-menu-item {
+  padding: 8px 16px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.context-menu-item:hover {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.page-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.page-content.no-tabs {
+  padding: 0;
+}
+</style>

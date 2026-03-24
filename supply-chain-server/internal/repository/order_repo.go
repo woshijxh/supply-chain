@@ -37,7 +37,7 @@ func (r *ProcurementRepository) List(page, pageSize int, status string) ([]model
 	var orders []model.ProcurementOrder
 	var total int64
 
-	query := r.db.Model(&model.ProcurementOrder{}).Preload("Supplier")
+	query := r.db.Model(&model.ProcurementOrder{}).Preload("Supplier").Preload("Items")
 	if status != "" {
 		query = query.Where("status = ?", status)
 	}

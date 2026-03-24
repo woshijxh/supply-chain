@@ -148,6 +148,10 @@
           <label class="form-label">关联采购订单（可选）</label>
           <Select v-model="stockForm.procurementId" :options="procurementOptions" optionLabel="label" optionValue="value" placeholder="选择采购订单自动带入产品和仓库" style="width: 100%" @change="onProcurementChange" />
         </div>
+        <div class="form-group" style="grid-column: span 2" v-if="stockType === 'in' && selectedProcurementItems.length > 1">
+          <label class="form-label">选择采购商品 *</label>
+          <Select v-model="stockForm.procurementItemId" :options="selectedProcurementItems" optionLabel="label" optionValue="value" placeholder="选择要入库的商品" style="width: 100%" @change="onProcurementItemChange" />
+        </div>
         <div class="form-group" style="grid-column: span 2">
           <label class="form-label">选择产品 *</label>
           <Select v-model="stockForm.productId" :options="productOptions" optionLabel="label" optionValue="value" placeholder="请选择产品" style="width: 100%" :disabled="!!stockForm.procurementId" />
@@ -233,12 +237,28 @@ const products = ref<any[]>([])
 const procurements = ref<any[]>([])
 
 const stockForm = ref({
-  productId: '',
+  productId: '' as string | number,
   quantity: 1,
   warehouse: '上海仓库',
   remark: '',
-  procurementId: '',
-  procurementItemId: ''
+  procurementId: '' as string | number,
+  procurementItemId: '' as string | number
+})
+
+// 当前选中采购订单的待入库商品列表
+const selectedProcurementItems = computed(() => {
+  if (!stockForm.value.procurementId) return []
+  const proc = procurements.value.find((p: any) => p.id === stockForm.value.procurementId)
+  if (!proc || !proc.items) return []
+
+  return proc.items
+    .filter((item: any) => (item.quantity || 0) > (item.receivedQty || 0))
+    .map((item: any) => ({
+      label: `${item.productName} (待入库: ${item.quantity - (item.receivedQty || 0)})`,
+      value: item.id,
+      productId: item.productId,
+      quantity: item.quantity - (item.receivedQty || 0)
+    }))
 })
 
 // 库存流水相关
@@ -281,11 +301,18 @@ const productOptions = computed(() => {
 })
 
 const procurementOptions = computed(() => {
-  return procurements.value.map((proc: any) => ({
-    label: `采购#${proc.id} - ${proc.supplierName} (${proc.warehouse})`,
-    value: proc.id,
-    items: proc.items || []
-  }))
+  return procurements.value
+    .filter((proc: any) => {
+      // 只显示有待入库商品的订单
+      const items = proc.items || []
+      return items.some((item: any) => (item.quantity || 0) > (item.receivedQty || 0))
+    })
+    .map((proc: any) => ({
+      label: `${proc.orderNo} - ${proc.supplier?.name || proc.supplierName || ''}`,
+      value: proc.id,
+      items: proc.items || [],
+      warehouse: proc.warehouse
+    }))
 })
 
 const filteredItems = computed(() => {
@@ -374,7 +401,8 @@ const fetchProducts = async () => {
 
 const fetchPendingProcurements = async () => {
   try {
-    const res: any = await procurementApi.list(1, 50, 'purchasing')
+    // 只获取已审批状态的订单才能入库
+    const res: any = await procurementApi.list(1, 50, 'approved')
     if (res.code === 0) {
       procurements.value = res.data.list || []
     }
@@ -387,18 +415,36 @@ const onProcurementChange = (event: any) => {
   const procurementId = event?.value || ''
   if (!procurementId) {
     stockForm.value.procurementItemId = ''
+    stockForm.value.productId = ''
     return
   }
   const proc = procurements.value.find((p: any) => p.id === procurementId)
-  if (proc && proc.items && proc.items.length > 0) {
-    const item = proc.items[0]
-    stockForm.value.productId = item.productId
-    stockForm.value.warehouse = proc.warehouse
-    stockForm.value.procurementItemId = item.id
-    const pendingQty = item.quantity - item.receivedQty
-    if (pendingQty > 0) {
-      stockForm.value.quantity = pendingQty
+  if (proc) {
+    stockForm.value.warehouse = proc.warehouse || '上海仓库'
+    // 如果只有一个商品，自动选中
+    const pendingItems = (proc.items || []).filter((item: any) => (item.quantity || 0) > (item.receivedQty || 0))
+    if (pendingItems.length === 1) {
+      const item = pendingItems[0]
+      stockForm.value.productId = item.productId
+      stockForm.value.procurementItemId = item.id
+      stockForm.value.quantity = item.quantity - (item.receivedQty || 0)
+    } else {
+      // 多个商品时，清空让用户选择
+      stockForm.value.productId = ''
+      stockForm.value.procurementItemId = ''
+      stockForm.value.quantity = 1
     }
+  }
+}
+
+const onProcurementItemChange = (event: any) => {
+  const itemId = event?.value || ''
+  if (!itemId) return
+
+  const selectedItem = selectedProcurementItems.value.find((item: any) => item.value === itemId)
+  if (selectedItem) {
+    stockForm.value.productId = selectedItem.productId
+    stockForm.value.quantity = selectedItem.quantity
   }
 }
 
@@ -425,11 +471,11 @@ const handleStock = async () => {
   try {
     const apiCall = stockType.value === 'in' ? inventoryApi.stockIn : inventoryApi.stockOut
     const res: any = await apiCall(
-      stockForm.value.productId,
+      String(stockForm.value.productId),
       stockForm.value.quantity,
       stockForm.value.warehouse,
-      stockForm.value.procurementId || undefined,
-      stockForm.value.procurementItemId || undefined
+      stockForm.value.procurementId ? String(stockForm.value.procurementId) : undefined,
+      stockForm.value.procurementItemId ? String(stockForm.value.procurementItemId) : undefined
     )
     if (res.code === 0) {
       toast.add({ severity: 'success', summary: `${stockType.value === 'in' ? '入库' : '出库'}成功`, life: 5000 })
