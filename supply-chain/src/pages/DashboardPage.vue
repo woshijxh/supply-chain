@@ -1,80 +1,138 @@
 <template>
   <div class="dashboard-page">
     <header class="page-header">
-      <h1 class="page-title">{{ t('dashboard.title') }}</h1>
-      <p class="page-subtitle">{{ t('dashboard.overview') }}</p>
+      <h1 class="page-title">仪表盘</h1>
+      <p class="page-subtitle">供应链管理系统数据概览</p>
     </header>
 
-    <section class="stat-grid">
-      <div class="stat-card">
-        <div class="stat-icon blue">
-          <i class="ri-money-cny-circle-line"></i>
-        </div>
-        <div class="stat-content">
-          <div class="stat-label">{{ t('dashboard.todaySales') }}</div>
-          <div class="stat-value">¥{{ formatNumber(stats.todaySales) }}</div>
-          <div class="stat-change up">
-            <i class="ri-arrow-up-line"></i>
-            {{ stats.salesGrowth }}%
+    <!-- 核心指标 -->
+    <section class="metric-grid">
+      <div class="metric-card sales">
+        <div class="metric-icon"><i class="ri-money-cny-circle-line"></i></div>
+        <div class="metric-body">
+          <div class="metric-label">今日销售额</div>
+          <div class="metric-value">¥{{ formatNumber(stats.todaySales) }}</div>
+          <div class="metric-trend" :class="stats.salesGrowth >= 0 ? 'up' : 'down'">
+            <i :class="stats.salesGrowth >= 0 ? 'ri-arrow-up-line' : 'ri-arrow-down-line'"></i>
+            {{ Math.abs(stats.salesGrowth) }}%
           </div>
         </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon green">
-          <i class="ri-file-list-3-line"></i>
-        </div>
-        <div class="stat-content">
-          <div class="stat-label">{{ t('dashboard.todayOrders') }}</div>
-          <div class="stat-value">{{ stats.todayOrders }}</div>
-          <div class="stat-change up">
-            <i class="ri-arrow-up-line"></i>
-            {{ stats.ordersGrowth }}%
+      <div class="metric-card orders">
+        <div class="metric-icon"><i class="ri-file-list-3-line"></i></div>
+        <div class="metric-body">
+          <div class="metric-label">今日订单</div>
+          <div class="metric-value">{{ stats.todayOrders }}</div>
+          <div class="metric-trend" :class="stats.ordersGrowth >= 0 ? 'up' : 'down'">
+            <i :class="stats.ordersGrowth >= 0 ? 'ri-arrow-up-line' : 'ri-arrow-down-line'"></i>
+            {{ Math.abs(stats.ordersGrowth) }}%
           </div>
         </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon orange">
-          <i class="ri-alert-line"></i>
-        </div>
-        <div class="stat-content">
-          <div class="stat-label">{{ t('dashboard.inventoryAlert') }}</div>
-          <div class="stat-value">{{ stats.inventoryAlert }}</div>
-          <div class="stat-change down">
-            <i class="ri-arrow-down-line"></i>
-            需要补货
+      <div class="metric-card inventory">
+        <div class="metric-icon"><i class="ri-store-2-line"></i></div>
+        <div class="metric-body">
+          <div class="metric-label">库存总量</div>
+          <div class="metric-value">{{ stats.inventoryStats?.total || 0 }}</div>
+          <div class="metric-trend warning" v-if="stats.inventoryAlert > 0">
+            <i class="ri-alert-line"></i>
+            {{ stats.inventoryAlert }} 项预警
+          </div>
+          <div class="metric-trend ok" v-else>
+            <i class="ri-checkbox-circle-line"></i> 库存正常
           </div>
         </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon purple">
-          <i class="ri-shopping-cart-line"></i>
-        </div>
-        <div class="stat-content">
-          <div class="stat-label">{{ t('dashboard.pendingProcurement') }}</div>
-          <div class="stat-value">{{ stats.pendingProcurement }}</div>
-          <div class="stat-change">待处理订单</div>
+      <div class="metric-card procurement">
+        <div class="metric-icon"><i class="ri-shopping-cart-line"></i></div>
+        <div class="metric-body">
+          <div class="metric-label">待处理采购</div>
+          <div class="metric-value">{{ stats.pendingProcurement }}</div>
+          <div class="metric-trend neutral">采购订单</div>
         </div>
       </div>
     </section>
 
-    <section class="grid-2">
-      <div class="card">
+    <!-- 业务概览 -->
+    <section class="overview-section">
+      <div class="overview-card">
+        <div class="overview-header">
+          <h3><i class="ri-building-line"></i> 业务伙伴</h3>
+        </div>
+        <div class="overview-stats">
+          <div class="stat-row" @click="navigateTo('/suppliers')">
+            <span class="stat-name">供应商</span>
+            <span class="stat-num blue">{{ stats.activeSuppliers || 0 }}</span>
+          </div>
+          <div class="stat-row" @click="navigateTo('/customers')">
+            <span class="stat-name">客户</span>
+            <span class="stat-num green">{{ stats.customerCount || 0 }}</span>
+          </div>
+          <div class="stat-row" @click="navigateTo('/products')">
+            <span class="stat-name">产品</span>
+            <span class="stat-num purple">{{ stats.productCount || 0 }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="overview-card">
+        <div class="overview-header">
+          <h3><i class="ri-exchange-line"></i> 库存状态</h3>
+        </div>
+        <div class="overview-stats">
+          <div class="stat-row">
+            <span class="stat-name">正常库存</span>
+            <span class="stat-num green">{{ stats.inventoryStats?.normal || 0 }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-name">低库存预警</span>
+            <span class="stat-num orange">{{ stats.inventoryStats?.low || 0 }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-name">总SKU数</span>
+            <span class="stat-num">{{ stats.inventoryStats?.totalSku || 0 }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="overview-card">
+        <div class="overview-header">
+          <h3><i class="ri-truck-line"></i> 订单状态</h3>
+        </div>
+        <div class="overview-stats">
+          <div class="stat-row">
+            <span class="stat-name">待确认销售</span>
+            <span class="stat-num orange">{{ stats.pendingSales || 0 }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-name">配送中物流</span>
+            <span class="stat-num blue">{{ stats.shippingLogistics || 0 }}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-name">待处理退货</span>
+            <span class="stat-num red">{{ stats.pendingReturns || 0 }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 图表区域 -->
+    <section class="chart-section">
+      <div class="chart-card">
         <div class="card-header">
-          <div class="card-title">
-            <span class="card-icon blue"><i class="ri-line-chart-line"></i></span>
-            {{ t('dashboard.salesTrend') }}
+          <h3><i class="ri-line-chart-line"></i> 销售趋势</h3>
+          <div class="chart-tabs">
+            <span :class="{ active: salesPeriod === 'week' }" @click="changeSalesPeriod('week')">近7天</span>
+            <span :class="{ active: salesPeriod === 'month' }" @click="changeSalesPeriod('month')">近30天</span>
           </div>
         </div>
         <div class="chart-container">
           <canvas ref="salesChartRef"></canvas>
         </div>
       </div>
-      <div class="card">
+      <div class="chart-card">
         <div class="card-header">
-          <div class="card-title">
-            <span class="card-icon green"><i class="ri-pie-chart-line"></i></span>
-            {{ t('dashboard.inventoryDistribution') }}
-          </div>
+          <h3><i class="ri-pie-chart-line"></i> 库存分布</h3>
         </div>
         <div class="chart-container">
           <canvas ref="inventoryChartRef"></canvas>
@@ -82,46 +140,64 @@
       </div>
     </section>
 
-    <section class="grid-2" style="margin-top: 20px;">
-      <div class="card">
+    <!-- 列表区域 -->
+    <section class="list-section">
+      <div class="list-card">
         <div class="card-header">
-          <div class="card-title">
-            <span class="card-icon orange"><i class="ri-fire-line"></i></span>
-            {{ t('dashboard.topProducts') }}
+          <h3><i class="ri-fire-line"></i> 热销产品</h3>
+          <a class="view-all" @click="navigateTo('/products')">查看全部</a>
+        </div>
+        <div class="product-list">
+          <div class="product-item" v-for="(item, index) in topProducts" :key="index">
+            <span class="rank" :class="'rank-' + (index + 1)">{{ index + 1 }}</span>
+            <div class="product-info">
+              <span class="product-name">{{ item.name }}</span>
+              <span class="product-sales">销量 {{ item.quantity }}</span>
+            </div>
+            <span class="product-amount">¥{{ formatNumber(item.sales) }}</span>
           </div>
         </div>
-        <DataTable :value="topProducts" stripedRows>
-          <Column field="rank" header="#" style="width: 50px"></Column>
-          <Column field="name" header="产品名称"></Column>
-          <Column field="sales" header="销售额">
-            <template #body="{ data }">
-              ¥{{ formatNumber(data.sales) }}
-            </template>
-          </Column>
-          <Column field="quantity" header="销量"></Column>
-        </DataTable>
       </div>
-      <div class="card">
+      <div class="list-card">
         <div class="card-header">
-          <div class="card-title">
-            <span class="card-icon purple"><i class="ri-time-line"></i></span>
-            {{ t('dashboard.recentOrders') }}
+          <h3><i class="ri-time-line"></i> 最近订单</h3>
+          <a class="view-all" @click="navigateTo('/sales')">查看全部</a>
+        </div>
+        <div class="order-list">
+          <div class="order-item" v-for="(order, index) in recentOrders" :key="index">
+            <div class="order-main">
+              <span class="order-no">{{ order.orderNo }}</span>
+              <span class="order-customer">{{ order.customer }}</span>
+            </div>
+            <div class="order-meta">
+              <span class="order-amount">¥{{ formatNumber(order.amount) }}</span>
+              <Tag :value="order.status" :severity="getOrderSeverity(order.status)" size="small" />
+            </div>
           </div>
         </div>
-        <DataTable :value="recentOrders" stripedRows>
-          <Column field="orderNo" header="订单号"></Column>
-          <Column field="customer" header="客户"></Column>
-          <Column field="amount" header="金额">
-            <template #body="{ data }">
-              ¥{{ formatNumber(data.amount) }}
-            </template>
-          </Column>
-          <Column field="status" header="状态">
-            <template #body="{ data }">
-              <span :class="['tag', getStatusClass(data.status)]">{{ data.status }}</span>
-            </template>
-          </Column>
-        </DataTable>
+      </div>
+      <div class="list-card">
+        <div class="card-header">
+          <h3><i class="ri-alert-line"></i> 库存预警</h3>
+          <a class="view-all" @click="navigateTo('/inventory')">查看全部</a>
+        </div>
+        <div class="alert-list">
+          <div class="alert-item" v-for="(item, index) in lowStockItems" :key="index">
+            <div class="alert-info">
+              <span class="alert-name">{{ item.name }}</span>
+              <span class="alert-sku">{{ item.sku }}</span>
+            </div>
+            <div class="alert-stock">
+              <span class="current">{{ item.quantity }}</span>
+              <span class="divider">/</span>
+              <span class="threshold">{{ item.minStock }}</span>
+            </div>
+          </div>
+          <div class="empty-alert" v-if="lowStockItems.length === 0">
+            <i class="ri-checkbox-circle-line"></i>
+            <span>库存充足，暂无预警</span>
+          </div>
+        </div>
       </div>
     </section>
   </div>
@@ -129,63 +205,117 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { Chart, registerables } from 'chart.js'
 import { dashboardApi } from '@/api'
 
 Chart.register(...registerables)
 
-const { t } = useI18n()
+const router = useRouter()
 
-const stats = ref({
+const stats = ref<any>({
   todaySales: 0,
   todayOrders: 0,
   inventoryAlert: 0,
   pendingProcurement: 0,
   salesGrowth: 0,
-  ordersGrowth: 0
+  ordersGrowth: 0,
+  inventoryStats: { total: 0, normal: 0, low: 0, totalSku: 0 },
+  activeSuppliers: 0,
+  customerCount: 0,
+  productCount: 0,
+  pendingSales: 0,
+  shippingLogistics: 0,
+  pendingReturns: 0
 })
+
+const salesPeriod = ref('week')
 const salesChartRef = ref<HTMLCanvasElement | null>(null)
 const inventoryChartRef = ref<HTMLCanvasElement | null>(null)
 let salesChart: Chart | null = null
 let inventoryChart: Chart | null = null
 
-const topProducts = ref([
-  { rank: 1, name: '工业电机', sales: 156800, quantity: 230 },
-  { rank: 2, name: '高精度传感器', sales: 98500, quantity: 2180 },
-  { rank: 3, name: '工业控制器', sales: 76200, quantity: 238 },
-  { rank: 4, name: '精密轴承', sales: 45600, quantity: 304 },
-  { rank: 5, name: '不锈钢板材', sales: 32800, quantity: 182 }
-])
+const topProducts = ref<any[]>([])
+const recentOrders = ref<any[]>([])
+const lowStockItems = ref<any[]>([])
 
-const recentOrders = ref([
-  { orderNo: 'SO20240306001', customer: '苏州精密仪器厂', amount: 15000, status: '待确认' },
-  { orderNo: 'SO20240305001', customer: '北京智能装备有限公司', amount: 45800, status: '已确认' },
-  { orderNo: 'SO20240304001', customer: '广州机械制造', amount: 28900, status: '发货中' },
-  { orderNo: 'SO20240303001', customer: '深圳科技股份', amount: 67200, status: '已完成' }
-])
+const formatNumber = (num: number) => num?.toLocaleString('zh-CN') || '0'
 
-const formatNumber = (num: number) => num.toLocaleString('zh-CN')
-
-const getStatusClass = (status: string) => {
-  const map: Record<string, string> = {
+const getOrderSeverity = (status: string) => {
+  const map: Record<string, any> = {
     '待确认': 'warning',
     '已确认': 'info',
-    '发货中': 'info',
-    '已完成': 'success'
+    '配送中': 'info',
+    '已完成': 'success',
+    '已取消': 'danger'
   }
-  return map[status] || 'info'
+  return map[status] || 'secondary'
+}
+
+const navigateTo = (path: string) => {
+  router.push(path)
 }
 
 const fetchStats = async () => {
   try {
     const res: any = await dashboardApi.stats()
     if (res.code === 0) {
-      stats.value = res.data
+      stats.value = { ...stats.value, ...res.data }
     }
   } catch (error) {
     console.error('获取统计数据失败', error)
   }
+}
+
+const fetchTopProducts = async () => {
+  // 暂时使用模拟数据
+  topProducts.value = [
+    { name: 'iPhone 15 Pro Max 256GB', sales: 156800, quantity: 23 },
+    { name: 'iPhone 15 Pro 128GB', sales: 98500, quantity: 18 },
+    { name: 'MacBook Pro 14寸 M3', sales: 76200, quantity: 8 },
+    { name: 'AirPods Pro 2', sales: 45600, quantity: 45 },
+    { name: 'iPad Air 5', sales: 32800, quantity: 12 }
+  ]
+}
+
+const fetchRecentOrders = async () => {
+  // 暂时使用模拟数据
+  recentOrders.value = [
+    { orderNo: 'SO20240324001', customer: '北京科技有限公司', amount: 45800, status: '待确认' },
+    { orderNo: 'SO20240323002', customer: '上海电子商贸', amount: 28900, status: '已确认' },
+    { orderNo: 'SO20240323001', customer: '深圳智能设备', amount: 67200, status: '配送中' },
+    { orderNo: 'SO20240322003', customer: '广州数码广场', amount: 15800, status: '已完成' }
+  ]
+}
+
+const fetchLowStockItems = async () => {
+  // 暂时使用模拟数据
+  lowStockItems.value = [
+    { name: 'iPhone 15 Pro 128GB', sku: 'IPHONE15PRO-128', quantity: 5, minStock: 20 },
+    { name: 'AirPods Pro 2', sku: 'AIRPODSPRO2', quantity: 8, minStock: 30 },
+    { name: 'MacBook Air M2', sku: 'MACAIR-M2-256', quantity: 2, minStock: 10 }
+  ]
+}
+
+const changeSalesPeriod = (period: string) => {
+  salesPeriod.value = period
+  updateSalesChart()
+}
+
+const updateSalesChart = () => {
+  if (!salesChart) return
+
+  const labels = salesPeriod.value === 'week'
+    ? ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+    : Array.from({ length: 30 }, (_, i) => `${i + 1}日`)
+
+  const data = salesPeriod.value === 'week'
+    ? [45000, 52000, 38000, 65000, 72000, 88000, 156800]
+    : Array.from({ length: 30 }, () => Math.floor(Math.random() * 80000) + 20000)
+
+  salesChart.data.labels = labels
+  salesChart.data.datasets[0].data = data
+  salesChart.update()
 }
 
 const initCharts = () => {
@@ -193,14 +323,16 @@ const initCharts = () => {
     salesChart = new Chart(salesChartRef.value, {
       type: 'line',
       data: {
-        labels: ['1月', '2月', '3月', '4月', '5月', '6月'],
+        labels: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
         datasets: [{
           label: '销售额',
-          data: [65000, 78000, 90000, 85000, 120000, 156800],
+          data: [45000, 52000, 38000, 65000, 72000, 88000, 156800],
           borderColor: '#3b82f6',
           backgroundColor: 'rgba(59, 130, 246, 0.1)',
           tension: 0.4,
-          fill: true
+          fill: true,
+          pointRadius: 4,
+          pointHoverRadius: 6
         }]
       },
       options: {
@@ -210,7 +342,12 @@ const initCharts = () => {
           legend: { display: false }
         },
         scales: {
-          y: { beginAtZero: true }
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: (value) => '¥' + (Number(value) / 10000).toFixed(1) + '万'
+            }
+          }
         }
       }
     })
@@ -220,17 +357,25 @@ const initCharts = () => {
     inventoryChart = new Chart(inventoryChartRef.value, {
       type: 'doughnut',
       data: {
-        labels: ['电子元器件', '机械配件', '原材料', '包装材料'],
+        labels: ['iPhone', 'Mac', 'iPad', 'AirPods', '配件'],
         datasets: [{
-          data: [45, 25, 20, 10],
-          backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#a855f7']
+          data: [45, 20, 15, 12, 8],
+          backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#a855f7', '#6b7280'],
+          borderWidth: 0
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        cutout: '65%',
         plugins: {
-          legend: { position: 'bottom' }
+          legend: {
+            position: 'right',
+            labels: {
+              boxWidth: 12,
+              padding: 16
+            }
+          }
         }
       }
     })
@@ -239,6 +384,9 @@ const initCharts = () => {
 
 onMounted(() => {
   fetchStats()
+  fetchTopProducts()
+  fetchRecentOrders()
+  fetchLowStockItems()
   initCharts()
 })
 
@@ -247,3 +395,426 @@ onBeforeUnmount(() => {
   inventoryChart?.destroy()
 })
 </script>
+
+<style scoped>
+.dashboard-page {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+.page-subtitle {
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* 核心指标 */
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.metric-card {
+  background: var(--surface-card);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-left: 4px solid;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.metric-card.sales { border-left-color: #3b82f6; }
+.metric-card.orders { border-left-color: #22c55e; }
+.metric-card.inventory { border-left-color: #f59e0b; }
+.metric-card.procurement { border-left-color: #a855f7; }
+
+.metric-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.metric-card.sales .metric-icon { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+.metric-card.orders .metric-icon { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
+.metric-card.inventory .metric-icon { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+.metric-card.procurement .metric-icon { background: rgba(168, 85, 247, 0.1); color: #a855f7; }
+
+.metric-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.metric-value {
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.metric-trend {
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.metric-trend.up { color: #22c55e; }
+.metric-trend.down { color: #ef4444; }
+.metric-trend.warning { color: #f59e0b; }
+.metric-trend.ok { color: #22c55e; }
+.metric-trend.neutral { color: var(--text-muted); }
+
+/* 业务概览 */
+.overview-section {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.overview-card {
+  background: var(--surface-card);
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.overview-header h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+}
+
+.overview-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--surface-border);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.stat-row:last-child {
+  border-bottom: none;
+}
+
+.stat-row:hover {
+  background: var(--surface-ground);
+  margin: 0 -12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+.stat-name {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.stat-num {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.stat-num.blue { color: #3b82f6; }
+.stat-num.green { color: #22c55e; }
+.stat-num.purple { color: #a855f7; }
+.stat-num.orange { color: #f59e0b; }
+.stat-num.red { color: #ef4444; }
+
+/* 图表区域 */
+.chart-section {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.chart-card {
+  background: var(--surface-card);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.card-header h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chart-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.chart-tabs span {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all 0.2s;
+}
+
+.chart-tabs span:hover {
+  background: var(--surface-ground);
+}
+
+.chart-tabs span.active {
+  background: var(--primary);
+  color: white;
+}
+
+.chart-container {
+  height: 250px;
+}
+
+/* 列表区域 */
+.list-section {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.list-card {
+  background: var(--surface-card);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.view-all {
+  font-size: 13px;
+  color: var(--primary);
+  cursor: pointer;
+}
+
+.view-all:hover {
+  text-decoration: underline;
+}
+
+/* 产品列表 */
+.product-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.product-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.product-item:last-child {
+  border-bottom: none;
+}
+
+.rank {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--surface-ground);
+  color: var(--text-muted);
+}
+
+.rank.rank-1 { background: #fef3c7; color: #d97706; }
+.rank.rank-2 { background: #e5e7eb; color: #6b7280; }
+.rank.rank-3 { background: #fed7aa; color: #c2410c; }
+
+.product-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.product-name {
+  display: block;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.product-sales {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.product-amount {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+/* 订单列表 */
+.order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.order-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.order-item:last-child {
+  border-bottom: none;
+}
+
+.order-no {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.order-customer {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.order-amount {
+  font-size: 14px;
+  font-weight: 500;
+  margin-right: 8px;
+}
+
+/* 预警列表 */
+.alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.alert-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #fef2f2;
+  border-radius: 8px;
+  border-left: 3px solid #ef4444;
+}
+
+.alert-name {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.alert-sku {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.alert-stock {
+  font-size: 14px;
+}
+
+.alert-stock .current {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.alert-stock .divider {
+  color: var(--text-muted);
+  margin: 0 4px;
+}
+
+.alert-stock .threshold {
+  color: var(--text-muted);
+}
+
+.empty-alert {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-muted);
+}
+
+.empty-alert i {
+  display: block;
+  font-size: 32px;
+  color: #22c55e;
+  margin-bottom: 8px;
+}
+
+/* 响应式 */
+@media (max-width: 1200px) {
+  .metric-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .chart-section {
+    grid-template-columns: 1fr;
+  }
+
+  .list-section {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .metric-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-section {
+    grid-template-columns: 1fr;
+  }
+
+  .list-section {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

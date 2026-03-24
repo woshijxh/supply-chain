@@ -6,7 +6,7 @@
     </header>
 
     <div class="toolbar">
-      <Button v-if="isAdmin()" label="新增权限" icon="ri-add-line" @click="openDialog()" />
+      <Button v-if="hasPermission(PERMISSION_PERMISSIONS.CREATE)" label="新增权限" icon="ri-add-line" @click="openDialog()" />
       <div class="search-box">
         <InputText v-model="searchKey" placeholder="搜索权限名称" @keyup.enter="onSearch" />
         <Button icon="ri-search-line" severity="secondary" @click="onSearch" />
@@ -49,8 +49,8 @@
         </Column>
         <Column header="操作" style="width: 120px">
           <template #body="{ data }">
-            <Button v-if="isAdmin()" text icon="ri-edit-line" @click="openEditDialog(data)" />
-            <Button v-if="isAdmin()" text severity="danger" icon="ri-delete-bin-line" @click="handleDelete(data)" />
+            <Button v-if="hasPermission(PERMISSION_PERMISSIONS.UPDATE)" text icon="ri-edit-line" @click="openEditDialog(data)" />
+            <Button v-if="hasPermission(PERMISSION_PERMISSIONS.DELETE)" text severity="danger" icon="ri-delete-bin-line" @click="handleDelete(data)" />
           </template>
         </Column>
       </DataTable>
@@ -94,9 +94,10 @@ import { useToast } from 'primevue/usetoast'
 import { permissionApi } from '@/api'
 import type { Permission } from '@/types'
 import { usePermission } from '@/utils/usePermission'
+import { PERMISSION_PERMISSIONS } from '@/config/permissions'
 
 const toast = useToast()
-const { isAdmin, initUserPermissions } = usePermission()
+const { hasPermission, initUserPermissions } = usePermission()
 
 const permissions = ref<Permission[]>([])
 const loading = ref(false)
@@ -161,7 +162,7 @@ function formatDate(date: string) {
 async function loadData() {
   loading.value = true
   try {
-    const res = await permissionApi.list(currentPage.value, rows.value, searchKey.value)
+    const res: any = await permissionApi.list(currentPage.value, rows.value, searchKey.value)
     if (res.code === 0) {
       permissions.value = res.data.list
       totalRecords.value = res.data.total

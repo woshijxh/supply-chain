@@ -6,7 +6,7 @@
     </header>
 
     <div class="toolbar">
-      <Button v-if="hasPermission(SUPPLIER_PERMISSIONS.WRITE) || canCreate()" :label="t('common.add')" icon="ri-add-line" @click="openDialog()" />
+      <Button v-if="hasPermission(SUPPLIER_PERMISSIONS.CREATE) || canCreate()" :label="t('common.add')" icon="ri-add-line" @click="openDialog()" />
       <div class="search-box">
         <InputText v-model="searchKey" :placeholder="t('common.search')" @keyup.enter="onSearch" />
         <Button icon="ri-search-line" severity="secondary" @click="onSearch" />
@@ -44,8 +44,8 @@
         </Column>
         <Column :header="t('common.actions')" style="width: 150px">
           <template #body="{ data }">
-            <Button v-if="hasPermission(SUPPLIER_PERMISSIONS.WRITE) || canEdit(data.creatorId, data.creatorDepartment)" text severity="info" icon="ri-edit-line" @click="openDialog(data)" />
-            <Button v-if="hasPermission(SUPPLIER_PERMISSIONS.WRITE) || canDelete()" text severity="danger" icon="ri-delete-bin-line" @click="handleDelete(data)" />
+            <Button v-if="hasPermission(SUPPLIER_PERMISSIONS.UPDATE) || canEdit(data.creatorId, data.creatorDepartment)" text severity="info" icon="ri-edit-line" @click="openDialog(data)" />
+            <Button v-if="hasPermission(SUPPLIER_PERMISSIONS.DELETE) || canDelete()" text severity="danger" icon="ri-delete-bin-line" @click="handleDelete(data)" />
           </template>
         </Column>
       </DataTable>

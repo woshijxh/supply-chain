@@ -3,6 +3,7 @@ package handler
 import (
 	"supply-chain-server/internal/model"
 	"supply-chain-server/internal/service"
+	"supply-chain-server/pkg/captcha"
 	"supply-chain-server/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -17,8 +18,10 @@ func NewAuthHandler(s *service.UserService) *AuthHandler {
 }
 
 type LoginRequest struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Username  string `json:"username"`
+	Password  string `json:"password"`
+	CaptchaID string `json:"captchaId"`
+	Captcha   string `json:"captcha"`
 }
 
 type RegisterRequest struct {
@@ -55,6 +58,17 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "参数错误")
+		return
+	}
+
+	// Verify captcha - always required
+	if req.CaptchaID == "" || req.Captcha == "" {
+		response.Error(c, 400, "请输入验证码")
+		return
+	}
+
+	if !captcha.Verify(req.CaptchaID, req.Captcha) {
+		response.Error(c, 400, "验证码错误")
 		return
 	}
 

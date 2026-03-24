@@ -287,7 +287,7 @@ type UserProfile struct {
 	UserID      uint      `gorm:"primaryKey" json:"userId"`
 	Department  string    `gorm:"size:50" json:"department"`
 	Position    string    `gorm:"size:50" json:"position"`
-	CreatedBy   *uint     `gorm" json:"createdBy"`
+	CreatedBy   *uint     `gorm:"-" json:"createdBy"`
 	CreatedAt   time.Time `json:"createdAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
 	User        User      `gorm:"foreignKey:UserID" json:"user,omitempty"`
@@ -307,4 +307,102 @@ type UserPermission struct {
 	PermissionID uint       `gorm:"primaryKey"`
 	User         User       `gorm:"foreignKey:UserID"`
 	Permission   Permission `gorm:"foreignKey:PermissionID"`
+}
+
+// Customer 客户表
+type Customer struct {
+	ID          uint           `gorm:"primaryKey" json:"id"`
+	Code        string         `gorm:"size:30;uniqueIndex" json:"code"`
+	Name        string         `gorm:"size:100;not null" json:"name"`
+	Contact     string         `gorm:"size:50" json:"contact"`
+	Phone       string         `gorm:"size:20" json:"phone"`
+	Email       string         `gorm:"size:100" json:"email"`
+	Address     string         `gorm:"size:255" json:"address"`
+	Level       string         `gorm:"size:10;default:'C'" json:"level"`     // A/B/C 客户等级
+	Source      string         `gorm:"size:50" json:"source"`                 // 客户来源
+	Status      int8           `gorm:"default:1" json:"status"`               // 1-启用 0-禁用
+	Remark      string         `gorm:"size:500" json:"remark"`
+	CreatedAt   time.Time      `json:"createdAt"`
+	UpdatedAt   time.Time      `json:"updatedAt"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
+// InventoryLog 库存流水记录
+type InventoryLog struct {
+	ID           uint      `gorm:"primaryKey" json:"id"`
+	ProductID    uint      `gorm:"index;not null" json:"productId"`
+	ProductName  string    `gorm:"size:100" json:"productName"`
+	Type         string    `gorm:"size:20;not null" json:"type"`          // in-入库 out-出库 lock-锁定 unlock-解锁
+	Quantity     int       `gorm:"not null" json:"quantity"`
+	BeforeQty    int       `json:"beforeQty"`                             // 变更前数量
+	AfterQty     int       `json:"afterQty"`                              // 变更后数量
+	Warehouse    string    `gorm:"size:50" json:"warehouse"`
+	RefType      string    `gorm:"size:30" json:"refType"`                // 关联类型: procurement/sales/adjust
+	RefID        uint      `json:"refId"`                                 // 关联单据ID
+	RefNo        string    `gorm:"size:30" json:"refNo"`                  // 关联单据号
+	Operator     string    `gorm:"size:50" json:"operator"`               // 操作人
+	Remark       string    `gorm:"size:255" json:"remark"`
+	CreatedAt    time.Time `json:"createdAt"`
+}
+
+// SalesReturn 销售退货单
+type SalesReturn struct {
+	ID               uint              `gorm:"primaryKey" json:"id"`
+	ReturnNo         string            `gorm:"uniqueIndex;size:30;not null" json:"returnNo"`
+	SalesOrderID     uint              `gorm:"index" json:"salesOrderId"`
+	SalesOrderNo     string            `gorm:"size:30" json:"salesOrderNo"`
+	CustomerName     string            `gorm:"size:100" json:"customerName"`
+	TotalAmount      float64           `json:"totalAmount"`
+	RefundAmount     float64           `json:"refundAmount"`
+	Status           string            `gorm:"size:20;default:'pending'" json:"status"` // pending-待处理 approved-已批准 rejected-已拒绝 completed-已完成
+	RefundStatus     string            `gorm:"size:20;default:'pending'" json:"refundStatus"` // pending-待退款 refunded-已退款
+	Reason           string            `gorm:"size:500" json:"reason"`
+	Remark           string            `gorm:"size:500" json:"remark"`
+	Items            []SalesReturnItem `gorm:"foreignKey:ReturnID" json:"items"`
+	CreatedAt        time.Time         `json:"createdAt"`
+	UpdatedAt        time.Time         `json:"updatedAt"`
+}
+
+// SalesReturnItem 销售退货明细
+type SalesReturnItem struct {
+	ID             uint    `gorm:"primaryKey" json:"id"`
+	ReturnID       uint    `gorm:"index;not null" json:"returnId"`
+	ProductID      uint    `gorm:"index" json:"productId"`
+	ProductName    string  `gorm:"size:100" json:"productName"`
+	Quantity       int     `json:"quantity"`
+	UnitPrice      float64 `json:"unitPrice"`
+	Amount         float64 `json:"amount"`
+	Reason         string  `gorm:"size:255" json:"reason"`
+	CreatedAt      time.Time `json:"createdAt"`
+}
+
+// ProcurementReturn 采购退货单
+type ProcurementReturn struct {
+	ID               uint                  `gorm:"primaryKey" json:"id"`
+	ReturnNo         string                `gorm:"uniqueIndex;size:30;not null" json:"returnNo"`
+	ProcurementOrderID uint                `gorm:"index" json:"procurementOrderId"`
+	ProcurementOrderNo string              `gorm:"size:30" json:"procurementOrderNo"`
+	SupplierName     string                `gorm:"size:100" json:"supplierName"`
+	TotalAmount      float64               `json:"totalAmount"`
+	RefundAmount     float64               `json:"refundAmount"`
+	Status           string                `gorm:"size:20;default:'pending'" json:"status"` // pending-待处理 approved-已批准 rejected-已拒绝 completed-已完成
+	RefundStatus     string                `gorm:"size:20;default:'pending'" json:"refundStatus"` // pending-待退款 refunded-已退款
+	Reason           string                `gorm:"size:500" json:"reason"`
+	Remark           string                `gorm:"size:500" json:"remark"`
+	Items            []ProcurementReturnItem `gorm:"foreignKey:ReturnID" json:"items"`
+	CreatedAt        time.Time             `json:"createdAt"`
+	UpdatedAt        time.Time             `json:"updatedAt"`
+}
+
+// ProcurementReturnItem 采购退货明细
+type ProcurementReturnItem struct {
+	ID             uint    `gorm:"primaryKey" json:"id"`
+	ReturnID       uint    `gorm:"index;not null" json:"returnId"`
+	ProductID      uint    `gorm:"index" json:"productId"`
+	ProductName    string  `gorm:"size:100" json:"productName"`
+	Quantity       int     `json:"quantity"`
+	UnitPrice      float64 `json:"unitPrice"`
+	Amount         float64 `json:"amount"`
+	Reason         string  `gorm:"size:255" json:"reason"`
+	CreatedAt      time.Time `json:"createdAt"`
 }

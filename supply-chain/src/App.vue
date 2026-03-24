@@ -14,13 +14,21 @@
         </div>
       </div>
       <nav class="menu">
-        <RouterLink to="/" class="menu-item" :class="{ active: isActive('/') }">
+        <RouterLink v-if="canViewDashboard" to="/" class="menu-item" :class="{ active: isActive('/') }">
           <i class="ri-dashboard-3-line"></i>
           <span>{{ t('menu.dashboard') }}</span>
         </RouterLink>
         <RouterLink v-if="canViewSuppliers" to="/suppliers" class="menu-item" :class="{ active: isActive('/suppliers') }">
           <i class="ri-building-line"></i>
           <span>{{ t('menu.suppliers') }}</span>
+        </RouterLink>
+        <RouterLink v-if="canViewCustomers" to="/customers" class="menu-item" :class="{ active: isActive('/customers') }">
+          <i class="ri-user-heart-line"></i>
+          <span>客户管理</span>
+        </RouterLink>
+        <RouterLink v-if="canViewProducts" to="/products" class="menu-item" :class="{ active: isActive('/products') }">
+          <i class="ri-box-3-line"></i>
+          <span>产品管理</span>
         </RouterLink>
         <RouterLink v-if="canViewProcurement" to="/procurement" class="menu-item" :class="{ active: isActive('/procurement') }">
           <i class="ri-shopping-cart-line"></i>
@@ -34,9 +42,17 @@
           <i class="ri-file-list-3-line"></i>
           <span>{{ t('menu.sales') }}</span>
         </RouterLink>
+        <RouterLink v-if="canViewSales" to="/returns" class="menu-item" :class="{ active: isActive('/returns') }">
+          <i class="ri-arrow-go-back-line"></i>
+          <span>退货管理</span>
+        </RouterLink>
         <RouterLink v-if="canViewLogistics" to="/logistics" class="menu-item" :class="{ active: isActive('/logistics') }">
           <i class="ri-truck-line"></i>
           <span>{{ t('menu.logistics') }}</span>
+        </RouterLink>
+        <RouterLink v-if="canViewTrace" to="/trace" class="menu-item" :class="{ active: isActive('/trace') }">
+          <i class="ri-search-eye-line"></i>
+          <span>商品追溯</span>
         </RouterLink>
         <div v-if="canViewUsers" class="menu-divider"></div>
         <RouterLink v-if="canViewUsers" to="/users" class="menu-item" :class="{ active: isActive('/users') }">
@@ -53,11 +69,14 @@
         </RouterLink>
       </nav>
       <div class="sidebar-footer">
-        <RouterLink to="/settings" class="user-avatar" :title="user?.username">
-          <img v-if="user?.avatar" :src="user.avatar" alt="avatar" />
-          <i v-else-if="!user?.username" class="ri-user-line"></i>
-          <span v-else class="avatar-text">{{ userInitial }}</span>
-        </RouterLink>
+        <div class="user-info">
+          <RouterLink to="/settings" class="user-avatar" :title="userStore.user?.username">
+            <img v-if="userStore.user?.avatar" :src="userStore.user.avatar" alt="avatar" />
+            <i v-else-if="!userStore.user?.username" class="ri-user-line"></i>
+            <span v-else class="avatar-text">{{ userStore.userInitial }}</span>
+          </RouterLink>
+          <span class="user-name">{{ userStore.user?.username || '用户' }}</span>
+        </div>
         <button class="logout-btn" @click="handleLogout">
           <span>{{ t('settings.logout') }}</span>
         </button>
@@ -72,78 +91,68 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter, RouterLink, RouterView } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import type { User } from '@/types'
+import { useUserStore } from '@/stores/user'
+import { setWatermark, removeWatermark } from '@/utils/watermark'
 
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
+const userStore = useUserStore()
 
 const isDark = ref(localStorage.getItem('darkMode') === 'true')
 
-// 从 localStorage 获取用户信息
-const user = computed<User | null>(() => {
-  const userStr = localStorage.getItem('user')
-  if (userStr) {
-    try {
-      return JSON.parse(userStr)
-    } catch {
-      return null
-    }
-  }
-  return null
+// 初始化用户状态
+onMounted(() => {
+  userStore.init()
 })
 
-// 检查用户是否有权限访问特定模块
-const hasPermission = (module: string, action: 'read' | 'write' = 'read') => {
-  if (!user.value) return false
-
-  // admin 拥有所有权限
-  if (user.value.role === 'admin') return true
-
-  // 检查 permissions 数组中是否有对应权限
-  const permKey = `${module}:${action}`
-  if (user.value.permissions?.includes(permKey)) return true
-
-  // 兼容旧的 role 字段权限检查
-  const rolePerms: Record<string, string[]> = {
-    admin: ['supplier:read', 'supplier:write', 'inventory:read', 'inventory:write', 'procurement:read', 'procurement:write', 'sales:read', 'sales:write', 'logistics:read', 'logistics:write', 'user:read', 'user:write', 'role:read', 'role:write', 'permission:read', 'permission:write'],
-    manager: ['supplier:read', 'inventory:read', 'inventory:write', 'procurement:read', 'procurement:write', 'sales:read', 'sales:write', 'logistics:read', 'logistics:write', 'user:read'],
-    operator: ['dashboard:read', 'inventory:read', 'procurement:read', 'sales:read']
-  }
-
-  const perms = rolePerms[user.value.role] || []
-  return perms.includes(permKey) || perms.includes(`${module}:read`)
-}
-
 // 菜单项权限控制
-const canViewSuppliers = computed(() => hasPermission('supplier', 'read'))
-const canViewProcurement = computed(() => hasPermission('procurement', 'read'))
-const canViewInventory = computed(() => hasPermission('inventory', 'read'))
-const canViewSales = computed(() => hasPermission('sales', 'read'))
-const canViewLogistics = computed(() => hasPermission('logistics', 'read'))
-const canViewUsers = computed(() => hasPermission('user', 'read'))
-const canViewRoles = computed(() => hasPermission('role', 'read'))
-const canViewPermissions = computed(() => hasPermission('permission', 'read'))
+const canViewDashboard = computed(() => userStore.hasPermission('dashboard:read'))
+const canViewSuppliers = computed(() => userStore.hasPermission('supplier:read'))
+const canViewCustomers = computed(() => userStore.hasPermission('customer:read'))
+const canViewProducts = computed(() => userStore.hasPermission('product:read'))
+const canViewProcurement = computed(() => userStore.hasPermission('procurement:read'))
+const canViewInventory = computed(() => userStore.hasPermission('inventory:read'))
+const canViewSales = computed(() => userStore.hasPermission('sales:read'))
+const canViewLogistics = computed(() => userStore.hasPermission('logistics:read'))
+const canViewTrace = computed(() => userStore.hasPermission('trace:read'))
+const canViewUsers = computed(() => userStore.hasPermission('user:read'))
+const canViewRoles = computed(() => userStore.hasPermission('role:read'))
+const canViewPermissions = computed(() => userStore.hasPermission('permission:read'))
 
 const isLoginPage = computed(() => route.path === '/login')
 const isActive = (path: string) => route.path === path
 
-// 获取用户名的首字母
-const userInitial = computed(() => {
-  if (!user.value?.username) return '?'
-  return user.value.username.charAt(0).toUpperCase()
-})
-
 const handleLogout = () => {
-  localStorage.removeItem('token')
-  localStorage.removeItem('user')
+  userStore.clearUser()
+  removeWatermark()
   router.push('/login')
 }
 
 watch(isDark, (val) => {
   document.documentElement.classList.toggle('dark-mode', val)
 }, { immediate: true })
+
+// 水印功能：登录后显示用户名水印
+watch(() => userStore.user, (newUser) => {
+  if (newUser?.username) {
+    setWatermark({
+      text: newUser.username,
+      fontSize: 14,
+      color: '#666',
+      gap: 120,
+      opacity: 0.12,
+      rotate: -20
+    })
+  } else {
+    removeWatermark()
+  }
+}, { immediate: true })
+
+onUnmounted(() => {
+  removeWatermark()
+})
 </script>

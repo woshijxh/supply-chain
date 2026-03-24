@@ -6,7 +6,7 @@
     </header>
 
     <div class="toolbar">
-      <Button v-if="hasPermission(PROCUREMENT_PERMISSIONS.WRITE)" :label="t('common.add')" icon="ri-add-line" @click="openDialog()" />
+      <Button v-if="hasPermission(PROCUREMENT_PERMISSIONS.CREATE)" :label="t('common.add')" icon="ri-add-line" @click="openDialog()" />
       <Select v-model="statusFilter" :options="statusOptions" optionLabel="label" optionValue="value" :placeholder="t('common.status')" style="width: 150px" />
     </div>
 
@@ -39,11 +39,12 @@
           </template>
         </Column>
         <Column field="warehouse" :header="t('procurement.warehouse')"></Column>
-        <Column :header="t('common.actions')" style="width: 180px">
+        <Column :header="t('common.actions')" style="width: 220px">
           <template #body="{ data }">
             <Button text severity="info" icon="ri-eye-line" @click="viewDetail(data)" />
-            <Button v-if="hasPermission(PROCUREMENT_PERMISSIONS.WRITE) && data.status === 'pending'" text severity="success" icon="ri-check-line" @click="approveOrder(data)" />
-            <Button v-if="hasPermission(PROCUREMENT_PERMISSIONS.WRITE)" text severity="danger" icon="ri-delete-bin-line" @click="handleDelete(data)" />
+            <Button v-if="hasPermission(PROCUREMENT_PERMISSIONS.UPDATE) && data.status === 'pending'" text severity="success" icon="ri-check-line" @click="approveOrder(data)" />
+            <Button v-if="hasPermission(PROCUREMENT_PERMISSIONS.UPDATE) && data.status === 'received'" text severity="warning" icon="ri-reply-line" @click="openReturnDialog(data)" />
+            <Button v-if="hasPermission(PROCUREMENT_PERMISSIONS.DELETE)" text severity="danger" icon="ri-delete-bin-line" @click="handleDelete(data)" />
           </template>
         </Column>
       </DataTable>
@@ -71,9 +72,17 @@
 
       <h4 style="margin: 20px 0 12px;">{{ t('procurement.items') }}</h4>
       <DataTable :value="form.items" stripedRows>
-        <Column field="productName" :header="t('procurement.productName')">
+        <Column field="productName" :header="t('procurement.productName')" style="width: 200px">
           <template #body="{ index }">
-            <InputText v-model="form.items[index].productName" />
+            <Select
+              v-model="form.items[index].productId"
+              :options="products"
+              optionLabel="name"
+              optionValue="id"
+              placeholder="选择产品"
+              @change="onProductSelect(index)"
+              style="width: 100%"
+            />
           </template>
         </Column>
         <Column field="quantity" :header="t('procurement.quantity')" style="width: 100px">
@@ -174,6 +183,35 @@
         <Button label="确认审批" severity="success" @click="handleApproveConfirm" />
       </div>
     </Dialog>
+
+    <!-- 退货弹窗 -->
+    <Dialog v-model:visible="returnDialogVisible" header="采购退货" :style="{ width: '600px' }">
+      <div class="return-info" style="margin-bottom: 16px; padding: 12px; background: var(--gray-50); border-radius: 8px;">
+        <div><strong>订单号:</strong> {{ returnForm.procurementOrderNo }}</div>
+        <div><strong>供应商:</strong> {{ returnForm.supplierName }}</div>
+      </div>
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label class="form-label">退货原因</label>
+        <Textarea v-model="returnForm.reason" rows="2" placeholder="请输入退货原因" />
+      </div>
+      <h4 style="margin-bottom: 12px;">退货商品</h4>
+      <DataTable :value="returnForm.items" stripedRows>
+        <Column field="productName" header="产品"></Column>
+        <Column field="originalQty" header="原数量" style="width: 80px"></Column>
+        <Column header="退货数量" style="width: 120px">
+          <template #body="{ data }">
+            <InputNumber v-model="data.returnQty" :min="0" :max="data.originalQty" style="width: 100px" />
+          </template>
+        </Column>
+        <Column field="unitPrice" header="单价">
+          <template #body="{ data }">¥{{ data.unitPrice }}</template>
+        </Column>
+      </DataTable>
+      <div class="dialog-footer">
+        <Button :label="t('common.cancel')" severity="secondary" @click="returnDialogVisible = false" />
+        <Button label="提交退货" @click="handleReturn" :loading="returnLoading" />
+      </div>
+    </Dialog>
   </div>
 </template>
 
@@ -182,8 +220,8 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
-import { procurementApi, supplierApi } from '@/api'
-import type { ProcurementOrder, ProcurementItem, Supplier } from '@/types'
+import { procurementApi, supplierApi, procurementReturnApi, productApi } from '@/api'
+import type { ProcurementOrder, ProcurementItem, Supplier, Product } from '@/types'
 import { PROCUREMENT_PERMISSIONS } from '@/config/permissions'
 import { usePermission } from '@/utils/usePermission'
 
@@ -200,6 +238,7 @@ const statusFilter = ref('all')
 const currentOrder = ref<ProcurementOrder | null>(null)
 const orders = ref<ProcurementOrder[]>([])
 const suppliers = ref<Supplier[]>([])
+const products = ref<Product[]>([])
 
 const approveForm = ref({
   orderId: '',
@@ -214,6 +253,17 @@ const form = ref({
   expectedDateValue: null as Date | null,
   remark: '',
   items: [] as ProcurementItem[]
+})
+
+// 退货相关
+const returnDialogVisible = ref(false)
+const returnLoading = ref(false)
+const returnForm = ref({
+  procurementOrderId: 0,
+  procurementOrderNo: '',
+  supplierName: '',
+  reason: '',
+  items: [] as { productId: number; productName: string; originalQty: number; returnQty: number; unitPrice: number }[]
 })
 
 const statusOptions = [
@@ -284,16 +334,38 @@ const fetchSuppliers = async () => {
   }
 }
 
+const fetchProducts = async () => {
+  try {
+    const res: any = await productApi.list(1, 1000, '')
+    if (res.code === 0) {
+      products.value = res.data.list || []
+    }
+  } catch (error) {
+    console.error('获取产品列表失败', error)
+  }
+}
+
 const onSupplierChange = (event: any) => {
   const supplier = suppliers.value.find(s => s.id === event.value)
   form.value.supplierName = supplier?.name || ''
 }
 
+const onProductSelect = (index: number) => {
+  const item = form.value.items[index]
+  const product = products.value.find(p => p.id === item.productId)
+  if (product) {
+    item.productName = product.name
+    item.unit = product.unit || '个'
+    item.unitPrice = product.costPrice || 0
+    calcAmount(index)
+  }
+}
+
 const addItem = () => {
   form.value.items.push({
-    id: '',
-    orderId: '',
-    productId: '',
+    id: 0,
+    orderId: 0,
+    productId: 0,
     productCode: '',
     productName: '',
     quantity: 1,
@@ -412,10 +484,75 @@ const handleDelete = (order: ProcurementOrder) => {
   })
 }
 
+const openReturnDialog = async (order: ProcurementOrder) => {
+  try {
+    const res: any = await procurementApi.get(String(order.id))
+    if (res.code === 0) {
+      const detail = res.data
+      returnForm.value = {
+        procurementOrderId: Number(detail.id),
+        procurementOrderNo: detail.orderNo,
+        supplierName: detail.supplier?.name || detail.supplierName || '',
+        reason: '',
+        items: (detail.items || []).map((item: any) => ({
+          productId: Number(item.productId),
+          productName: item.productName,
+          originalQty: item.receivedQty || item.quantity,
+          returnQty: 0,
+          unitPrice: item.unitPrice
+        }))
+      }
+      returnDialogVisible.value = true
+    }
+  } catch (error) {
+    toast.add({ severity: 'error', summary: '获取订单详情失败', life: 5000 })
+  }
+}
+
+const handleReturn = async () => {
+  const returnItems = returnForm.value.items.filter(item => item.returnQty > 0)
+  if (returnItems.length === 0) {
+    toast.add({ severity: 'warn', summary: '请选择要退货的商品', life: 5000 })
+    return
+  }
+  if (!returnForm.value.reason.trim()) {
+    toast.add({ severity: 'warn', summary: '请填写退货原因', life: 5000 })
+    return
+  }
+
+  returnLoading.value = true
+  try {
+    const totalAmount = returnItems.reduce((sum, item) => sum + item.returnQty * item.unitPrice, 0)
+    const res: any = await procurementReturnApi.create({
+      procurementOrderId: returnForm.value.procurementOrderId,
+      procurementOrderNo: returnForm.value.procurementOrderNo,
+      supplierName: returnForm.value.supplierName,
+      reason: returnForm.value.reason,
+      totalAmount,
+      items: returnItems.map(item => ({
+        productId: item.productId,
+        productName: item.productName,
+        quantity: item.returnQty,
+        unitPrice: item.unitPrice,
+        amount: item.returnQty * item.unitPrice
+      }))
+    })
+    if (res.code === 0) {
+      toast.add({ severity: 'success', summary: '退货申请已提交', life: 5000 })
+      returnDialogVisible.value = false
+    }
+  } catch (error) {
+    toast.add({ severity: 'error', summary: '提交退货失败', life: 5000 })
+  } finally {
+    returnLoading.value = false
+  }
+}
+
 onMounted(() => {
   initUserPermissions()
   fetchOrders()
   fetchSuppliers()
+  fetchProducts()
 })
 </script>
 

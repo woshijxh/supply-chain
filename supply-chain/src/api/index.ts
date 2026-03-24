@@ -2,8 +2,8 @@ import api from './request'
 import type { Supplier } from '@/types'
 
 export const authApi = {
-  login: (username: string, password: string) =>
-    api.post('/auth/login', { username, password }),
+  login: (username: string, password: string, captchaId?: string, captcha?: string) =>
+    api.post('/auth/login', { username, password, captchaId, captcha }),
 
   register: (data: { username: string; password: string; email?: string }) =>
     api.post('/auth/register', data),
@@ -15,7 +15,10 @@ export const authApi = {
     api.put('/auth/password', { currentPassword, newPassword }),
 
   updateAvatar: (avatar: string) =>
-    api.put('/auth/avatar', { avatar })
+    api.put('/auth/avatar', { avatar }),
+
+  getCaptcha: () =>
+    api.get('/auth/captcha', { responseType: 'blob' })
 }
 
 export const productApi = {
@@ -119,6 +122,81 @@ export const dashboardApi = {
     api.get('/dashboard/stats')
 }
 
+// 客户管理 API
+export const customerApi = {
+  list: (page = 1, pageSize = 10, keyword = '') =>
+    api.get('/customers', { params: { page, pageSize, keyword } }),
+
+  getAll: () =>
+    api.get('/customers/all'),
+
+  get: (id: string) =>
+    api.get(`/customers/${id}`),
+
+  create: (data: any) =>
+    api.post('/customers', data),
+
+  update: (id: string, data: any) =>
+    api.put(`/customers/${id}`, data),
+
+  delete: (id: string) =>
+    api.delete(`/customers/${id}`)
+}
+
+// 库存流水 API
+export const inventoryLogApi = {
+  list: (page = 1, pageSize = 20, productId = '', type = '') =>
+    api.get('/inventory/logs', { params: { page, pageSize, productId, type } })
+}
+
+// 销售退货 API
+export const salesReturnApi = {
+  list: (page = 1, pageSize = 10, status = '') =>
+    api.get('/sales-returns', { params: { page, pageSize, status } }),
+
+  get: (id: string) =>
+    api.get(`/sales-returns/${id}`),
+
+  create: (data: any) =>
+    api.post('/sales-returns', data),
+
+  approve: (id: string) =>
+    api.put(`/sales-returns/${id}/approve`),
+
+  reject: (id: string, reason: string) =>
+    api.put(`/sales-returns/${id}/reject`, { reason }),
+
+  complete: (id: string, refundAmount: number) =>
+    api.put(`/sales-returns/${id}/complete`, { refundAmount }),
+
+  delete: (id: string) =>
+    api.delete(`/sales-returns/${id}`)
+}
+
+// 采购退货 API
+export const procurementReturnApi = {
+  list: (page = 1, pageSize = 10, status = '') =>
+    api.get('/procurement-returns', { params: { page, pageSize, status } }),
+
+  get: (id: string) =>
+    api.get(`/procurement-returns/${id}`),
+
+  create: (data: any) =>
+    api.post('/procurement-returns', data),
+
+  approve: (id: string) =>
+    api.put(`/procurement-returns/${id}/approve`),
+
+  reject: (id: string, reason: string) =>
+    api.put(`/procurement-returns/${id}/reject`, { reason }),
+
+  complete: (id: string, refundAmount: number) =>
+    api.put(`/procurement-returns/${id}/complete`, { refundAmount }),
+
+  delete: (id: string) =>
+    api.delete(`/procurement-returns/${id}`)
+}
+
 // 用户管理 API
 export const userApi = {
   list: (page = 1, pageSize = 10, keyword = '') =>
@@ -195,4 +273,10 @@ export const permissionApi = {
 
   delete: (id: string) =>
     api.delete(`/permissions/${id}`)
+}
+
+// 追溯管理 API
+export const traceApi = {
+  trace: (code: string) =>
+    api.get('/trace', { params: { code } })
 }

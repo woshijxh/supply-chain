@@ -22,6 +22,18 @@ const routes: RouteRecordRaw[] = [
     meta: { title: 'suppliers', requiresAuth: true, permission: 'supplier:read' }
   },
   {
+    path: '/customers',
+    name: 'customers',
+    component: () => import('@/pages/CustomerPage.vue'),
+    meta: { title: '客户管理', requiresAuth: true, permission: 'customer:read' }
+  },
+  {
+    path: '/products',
+    name: 'products',
+    component: () => import('@/pages/ProductPage.vue'),
+    meta: { title: '产品管理', requiresAuth: true, permission: 'product:read' }
+  },
+  {
     path: '/procurement',
     name: 'procurement',
     component: () => import('@/pages/ProcurementPage.vue'),
@@ -68,6 +80,18 @@ const routes: RouteRecordRaw[] = [
     name: 'settings',
     component: () => import('@/pages/SettingsPage.vue'),
     meta: { title: '用户设置', requiresAuth: true }
+  },
+  {
+    path: '/returns',
+    name: 'returns',
+    component: () => import('@/pages/ReturnPage.vue'),
+    meta: { title: '退货管理', requiresAuth: true, permission: 'sales:read' }
+  },
+  {
+    path: '/trace',
+    name: 'trace',
+    component: () => import('@/pages/TracePage.vue'),
+    meta: { title: '商品追溯', requiresAuth: true, permission: 'trace:read' }
   }
 ]
 
@@ -87,13 +111,16 @@ const hasPermission = (user: User | null, permission?: string): boolean => {
   if (!permission) return true
 
   // 检查 permissions 数组中是否有对应权限
-  if (user.permissions?.includes(permission)) return true
+  if (user.permissions?.some(p => {
+    if (typeof p === 'string') return p === permission
+    return p.code === permission || p.name === permission
+  })) return true
 
   // 兼容旧的 role 字段权限检查
   const rolePerms: Record<string, string[]> = {
-    admin: ['supplier:read', 'supplier:write', 'inventory:read', 'inventory:write', 'procurement:read', 'procurement:write', 'sales:read', 'sales:write', 'logistics:read', 'logistics:write', 'user:read', 'user:write', 'role:read', 'role:write', 'permission:read', 'permission:write', 'dashboard:read'],
-    manager: ['supplier:read', 'inventory:read', 'inventory:write', 'procurement:read', 'procurement:write', 'sales:read', 'sales:write', 'logistics:read', 'logistics:write', 'user:read', 'dashboard:read'],
-    operator: ['dashboard:read', 'inventory:read', 'procurement:read', 'sales:read']
+    admin: ['supplier:read', 'supplier:write', 'inventory:read', 'inventory:write', 'procurement:read', 'procurement:write', 'sales:read', 'sales:write', 'logistics:read', 'logistics:write', 'user:read', 'user:write', 'role:read', 'role:write', 'permission:read', 'permission:write', 'dashboard:read', 'product:read', 'product:write', 'customer:read', 'customer:write'],
+    manager: ['supplier:read', 'inventory:read', 'inventory:write', 'procurement:read', 'procurement:write', 'sales:read', 'sales:write', 'logistics:read', 'logistics:write', 'user:read', 'dashboard:read', 'product:read', 'product:write', 'customer:read', 'customer:write'],
+    operator: ['dashboard:read', 'inventory:read', 'procurement:read', 'sales:read', 'product:read', 'customer:read']
   }
 
   const perms = rolePerms[user.role] || []

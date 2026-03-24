@@ -6,7 +6,7 @@
     </header>
 
     <div class="toolbar">
-      <Button v-if="hasPermission(ROLE_PERMISSIONS.WRITE) || isAdmin()" label="新增角色" icon="ri-add-line" @click="openDialog()" />
+      <Button v-if="hasPermission(ROLE_PERMISSIONS.CREATE) || isAdmin()" label="新增角色" icon="ri-add-line" @click="openDialog()" />
       <div class="search-box">
         <InputText v-model="searchKey" placeholder="搜索角色名称" @keyup.enter="onSearch" />
         <Button icon="ri-search-line" severity="secondary" @click="onSearch" />
@@ -44,8 +44,8 @@
         </Column>
         <Column header="操作" style="width: 200px">
           <template #body="{ data }">
-            <Button v-if="hasPermission(ROLE_PERMISSIONS.WRITE) || isAdmin()" text severity="info" icon="ri-edit-line" @click="openDialog(data)" />
-            <Button v-if="hasPermission(ROLE_PERMISSIONS.WRITE) || isAdmin()" text severity="danger" icon="ri-delete-bin-line" @click="handleDelete(data)" />
+            <Button v-if="hasPermission(ROLE_PERMISSIONS.UPDATE) || isAdmin()" text severity="info" icon="ri-edit-line" @click="openDialog(data)" />
+            <Button v-if="hasPermission(ROLE_PERMISSIONS.DELETE) || isAdmin()" text severity="danger" icon="ri-delete-bin-line" @click="handleDelete(data)" />
             <Button text severity="secondary" icon="ri-shield-check-line" @click="openPermissionDialog(data)" />
           </template>
         </Column>
@@ -140,7 +140,7 @@ const statusOptions = [
 
 // 按类型分组权限
 const permissionGroups = computed(() => {
-  const groups: Record<string, { label: string; permissions: Permission[] }> = {}
+  const groups: Record<string, { type: string; label: string; permissions: Permission[] }> = {}
 
   allPermissions.value.forEach(perm => {
     const type = perm.type || 'other'
@@ -152,7 +152,7 @@ const permissionGroups = computed(() => {
         api: 'API权限',
         other: '其他权限'
       }
-      groups[type] = { label: labels[type] || type, permissions: [] }
+      groups[type] = { type, label: labels[type] || type, permissions: [] }
     }
     groups[type].permissions.push(perm)
   })
@@ -168,7 +168,7 @@ function formatDate(date: string) {
 async function loadData() {
   loading.value = true
   try {
-    const res = await roleApi.list(1, rows.value, searchKey.value)
+    const res: any = await roleApi.list(1, rows.value, searchKey.value)
     if (res.code === 0) {
       roles.value = res.data.list
       totalRecords.value = res.data.total
@@ -182,7 +182,7 @@ async function loadData() {
 
 async function loadPermissions() {
   try {
-    const res = await permissionApi.getAll()
+    const res: any = await permissionApi.getAll()
     if (res.code === 0) {
       allPermissions.value = res.data
     }
@@ -251,7 +251,7 @@ async function handleDelete(role: Role) {
 async function openPermissionDialog(role: Role) {
   selectedRoleId.value = role.id
   try {
-    const res = await roleApi.getPermissions(String(role.id))
+    const res: any = await roleApi.getPermissions(String(role.id))
     if (res.code === 0) {
       selectedPermissionIds.value = res.data.map((p: Permission) => p.id)
     }

@@ -193,6 +193,18 @@ html, body {
   justify-content: space-between;
 }
 
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .user-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+  }
+}
+
 .user-avatar {
   width: 36px;
   height: 36px;

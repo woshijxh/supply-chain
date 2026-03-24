@@ -59,7 +59,7 @@ npm run dev
 ### Default Login
 
 - Username: admin
-- Password: admin123
+- Password: 123456
 
 ## API Endpoints
 

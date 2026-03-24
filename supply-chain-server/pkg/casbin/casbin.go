@@ -21,25 +21,22 @@ func InitCasbin(db *gorm.DB) error {
 		Act string
 	}
 
-	// 查询 role_permissions
-	db.Table("role_permissions rp").
-		Select("r.name as sub, p.name as obj, 'read' as act").
-		Joins("JOIN roles r ON r.id = rp.role_id").
-		Joins("JOIN permissions p ON p.id = rp.permission_id").
-		Where("p.name LIKE '%:read'").Scan(&permissions)
+	// 加载所有权限: read, create, update, delete
+	permissionTypes := []string{"read", "create", "update", "delete"}
 
-	for _, p := range permissions {
-		enforcer.AddPolicy(p.Sub, strings.TrimSuffix(p.Obj, ":read"), "read")
-	}
+	for _, permType := range permissionTypes {
+		db.Table("role_permissions rp").
+			Select("r.code as sub, p.code as obj, ? as act", permType).
+			Joins("JOIN roles r ON r.id = rp.role_id").
+			Joins("JOIN permissions p ON p.id = rp.permission_id").
+			Where("p.code LIKE ?", "%:"+permType).
+			Scan(&permissions)
 
-	db.Table("role_permissions rp").
-		Select("r.name as sub, p.name as obj, 'write' as act").
-		Joins("JOIN roles r ON r.id = rp.role_id").
-		Joins("JOIN permissions p ON p.id = rp.permission_id").
-		Where("p.name LIKE '%:write'").Scan(&permissions)
-
-	for _, p := range permissions {
-		enforcer.AddPolicy(p.Sub, strings.TrimSuffix(p.Obj, ":write"), "write")
+		for _, p := range permissions {
+			// 从权限码中提取模块名，如 "customer:read" -> "customer"
+			module := strings.TrimSuffix(p.Obj, ":"+permType)
+			enforcer.AddPolicy(p.Sub, module, permType)
+		}
 	}
 
 	// 加载策略

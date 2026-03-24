@@ -23,6 +23,60 @@ CREATE TABLE IF NOT EXISTS users (
 INSERT INTO users (username, password, email, role, status) VALUES
 ('admin', 'admin123', 'admin@supply.com', 'admin', 1);
 
+-- 用户角色关联表
+CREATE TABLE IF NOT EXISTS user_roles (
+    user_id BIGINT UNSIGNED NOT NULL,
+    role_id BIGINT UNSIGNED NOT NULL,
+    PRIMARY KEY (user_id, role_id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (role_id) REFERENCES roles(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户角色关联表';
+
+-- 角色表
+CREATE TABLE IF NOT EXISTS roles (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL COMMENT '角色名称',
+    code VARCHAR(50) COMMENT '角色编码',
+    description VARCHAR(255) COMMENT '描述',
+    status TINYINT DEFAULT 1 COMMENT '状态: 1-启用 0-禁用',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME DEFAULT NULL,
+    UNIQUE INDEX idx_name (name),
+    INDEX idx_deleted_at (deleted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='角色表';
+
+-- 权限表
+CREATE TABLE IF NOT EXISTS permissions (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL COMMENT '权限名称',
+    code VARCHAR(100) COMMENT '权限编码',
+    type VARCHAR(20) DEFAULT 'api' COMMENT '类型: api, menu, button, data',
+    description VARCHAR(255) COMMENT '描述',
+    status TINYINT DEFAULT 1 COMMENT '状态: 1-启用 0-禁用',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE INDEX idx_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='权限表';
+
+-- 角色权限关联表
+CREATE TABLE IF NOT EXISTS role_permissions (
+    role_id BIGINT UNSIGNED NOT NULL,
+    permission_id BIGINT UNSIGNED NOT NULL,
+    PRIMARY KEY (role_id, permission_id),
+    FOREIGN KEY (role_id) REFERENCES roles(id),
+    FOREIGN KEY (permission_id) REFERENCES permissions(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='角色权限关联表';
+
+-- 用户权限直接关联表
+CREATE TABLE IF NOT EXISTS user_permissions (
+    user_id BIGINT UNSIGNED NOT NULL,
+    permission_id BIGINT UNSIGNED NOT NULL,
+    PRIMARY KEY (user_id, permission_id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (permission_id) REFERENCES permissions(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户权限关联表';
+
 -- 供应商表
 CREATE TABLE IF NOT EXISTS suppliers (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -207,3 +261,120 @@ CREATE TABLE IF NOT EXISTS logistics_timelines (
     INDEX idx_logistics_id (logistics_id),
     FOREIGN KEY (logistics_id) REFERENCES logistics_orders(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='物流轨迹表';
+
+-- Casbin 规则表 (权限控制)
+CREATE TABLE IF NOT EXISTS casbin_rule (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    ptype VARCHAR(100) NOT NULL COMMENT '规则类型: p-策略, g-角色继承',
+    v0 VARCHAR(100) COMMENT '角色编码',
+    v1 VARCHAR(100) COMMENT '权限编码/资源',
+    v2 VARCHAR(100) COMMENT '动作: allow/deny',
+    v3 VARCHAR(100),
+    v4 VARCHAR(100),
+    v5 VARCHAR(100),
+    INDEX idx_ptype (ptype),
+    INDEX idx_v0 (v0),
+    INDEX idx_v1 (v1)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Casbin权限规则表';
+
+-- 客户表
+CREATE TABLE IF NOT EXISTS customers (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(20) COMMENT '客户编码',
+    name VARCHAR(100) NOT NULL COMMENT '客户名称',
+    contact VARCHAR(50) COMMENT '联系人',
+    phone VARCHAR(20) COMMENT '电话',
+    email VARCHAR(100) COMMENT '邮箱',
+    address VARCHAR(255) COMMENT '地址',
+    level VARCHAR(10) DEFAULT 'C' COMMENT '等级: A/B/C',
+    source VARCHAR(50) COMMENT '来源',
+    status TINYINT DEFAULT 1 COMMENT '状态: 1-启用 0-禁用',
+    remark VARCHAR(500) COMMENT '备注',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME DEFAULT NULL,
+    INDEX idx_deleted_at (deleted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='客户表';
+
+-- 库存流水表
+CREATE TABLE IF NOT EXISTS inventory_logs (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    product_id BIGINT UNSIGNED NOT NULL COMMENT '产品ID',
+    product_name VARCHAR(100) COMMENT '产品名称',
+    type VARCHAR(20) NOT NULL COMMENT '类型: in-入库 out-出库 lock-锁定 unlock-解锁',
+    quantity INT NOT NULL COMMENT '变更数量',
+    before_qty INT COMMENT '变更前数量',
+    after_qty INT COMMENT '变更后数量',
+    warehouse VARCHAR(50) COMMENT '仓库',
+    ref_type VARCHAR(30) COMMENT '关联类型',
+    ref_id BIGINT UNSIGNED COMMENT '关联单据ID',
+    ref_no VARCHAR(50) COMMENT '关联单号',
+    operator VARCHAR(50) COMMENT '操作人',
+    remark VARCHAR(500) COMMENT '备注',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_product_id (product_id),
+    INDEX idx_type (type),
+    INDEX idx_ref (ref_type, ref_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='库存流水表';
+
+-- 销售退货表
+CREATE TABLE IF NOT EXISTS sales_returns (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    return_no VARCHAR(30) NOT NULL UNIQUE COMMENT '退货单号',
+    sales_order_id BIGINT UNSIGNED COMMENT '销售订单ID',
+    sales_order_no VARCHAR(30) COMMENT '销售订单号',
+    customer_name VARCHAR(100) COMMENT '客户名称',
+    total_amount DECIMAL(12,2) COMMENT '总金额',
+    refund_amount DECIMAL(12,2) COMMENT '退款金额',
+    status VARCHAR(20) DEFAULT 'pending' COMMENT '状态',
+    refund_status VARCHAR(20) DEFAULT 'pending' COMMENT '退款状态',
+    reason VARCHAR(500) COMMENT '退货原因',
+    remark VARCHAR(500) COMMENT '备注',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_sales_order_id (sales_order_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='销售退货表';
+
+-- 销售退货明细表
+CREATE TABLE IF NOT EXISTS sales_return_items (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    return_id BIGINT UNSIGNED NOT NULL COMMENT '退货单ID',
+    product_id BIGINT UNSIGNED COMMENT '产品ID',
+    product_name VARCHAR(100) COMMENT '产品名称',
+    quantity INT COMMENT '退货数量',
+    unit_price DECIMAL(12,2) COMMENT '单价',
+    amount DECIMAL(12,2) COMMENT '金额',
+    reason VARCHAR(200) COMMENT '退货原因',
+    INDEX idx_return_id (return_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='销售退货明细表';
+
+-- 采购退货表
+CREATE TABLE IF NOT EXISTS procurement_returns (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    return_no VARCHAR(30) NOT NULL UNIQUE COMMENT '退货单号',
+    procurement_order_id BIGINT UNSIGNED COMMENT '采购订单ID',
+    procurement_order_no VARCHAR(30) COMMENT '采购订单号',
+    supplier_name VARCHAR(100) COMMENT '供应商名称',
+    total_amount DECIMAL(12,2) COMMENT '总金额',
+    refund_amount DECIMAL(12,2) COMMENT '退款金额',
+    status VARCHAR(20) DEFAULT 'pending' COMMENT '状态',
+    refund_status VARCHAR(20) DEFAULT 'pending' COMMENT '退款状态',
+    reason VARCHAR(500) COMMENT '退货原因',
+    remark VARCHAR(500) COMMENT '备注',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_procurement_order_id (procurement_order_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='采购退货表';
+
+-- 采购退货明细表
+CREATE TABLE IF NOT EXISTS procurement_return_items (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    return_id BIGINT UNSIGNED NOT NULL COMMENT '退货单ID',
+    product_id BIGINT UNSIGNED COMMENT '产品ID',
+    product_name VARCHAR(100) COMMENT '产品名称',
+    quantity INT COMMENT '退货数量',
+    unit_price DECIMAL(12,2) COMMENT '单价',
+    amount DECIMAL(12,2) COMMENT '金额',
+    reason VARCHAR(200) COMMENT '退货原因',
+    INDEX idx_return_id (return_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='采购退货明细表';

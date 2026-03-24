@@ -45,6 +45,7 @@ type SalesOrderRequest struct {
 }
 
 type SalesItemRequest struct {
+	ProductID   uint    `json:"productId"`
 	ProductName string  `json:"productName"`
 	Quantity    int     `json:"quantity"`
 	UnitPrice   float64 `json:"unitPrice"`
@@ -113,7 +114,7 @@ func (h *ProcurementHandler) Create(c *gin.Context) {
 			response.BadRequest(c, "日期格式错误: "+err.Error())
 			return
 		}
-		expectedDate = &model.Date{parsed}
+		expectedDate = &model.Date{Time: parsed}
 	}
 
 	// 转换 items - look up product ID by name
@@ -264,6 +265,7 @@ func (h *SalesHandler) Create(c *gin.Context) {
 	items := make([]model.SalesOrderItem, len(req.Items))
 	for i, item := range req.Items {
 		items[i] = model.SalesOrderItem{
+			ProductID:   item.ProductID,
 			ProductName: item.ProductName,
 			Quantity:    item.Quantity,
 			UnitPrice:   item.UnitPrice,

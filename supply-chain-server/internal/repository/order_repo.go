@@ -2,6 +2,7 @@ package repository
 
 import (
 	"supply-chain-server/internal/model"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -54,6 +55,15 @@ func (r *ProcurementRepository) UpdateItem(item *model.ProcurementItem) error {
 	return r.db.Save(item).Error
 }
 
+// CountPending 统计待处理采购订单数量
+func (r *ProcurementRepository) CountPending() (int64, error) {
+	var count int64
+	err := r.db.Model(&model.ProcurementOrder{}).
+		Where("status IN ?", []string{"pending", "approved", "purchasing"}).
+		Count(&count).Error
+	return count, err
+}
+
 type SalesRepository struct {
 	db *gorm.DB
 }
@@ -98,6 +108,65 @@ func (r *SalesRepository) CreateItem(item *model.SalesOrderItem) error {
 	return r.db.Create(item).Error
 }
 
+// GetTodayStats 获取今日销售统计
+func (r *SalesRepository) GetTodayStats() (float64, int64, error) {
+	var totalAmount float64
+	var orderCount int64
+
+	today := time.Now().Format("2006-01-02")
+	err := r.db.Model(&model.SalesOrder{}).
+		Where("DATE(order_date) = ?", today).
+		Where("status != ?", "cancelled").
+		Select("COALESCE(SUM(total_amount), 0)").
+		Scan(&totalAmount).Error
+	if err != nil {
+		return 0, 0, err
+	}
+
+	err = r.db.Model(&model.SalesOrder{}).
+		Where("DATE(order_date) = ?", today).
+		Where("status != ?", "cancelled").
+		Count(&orderCount).Error
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return totalAmount, orderCount, nil
+}
+
+// GetYesterdayStats 获取昨日销售统计（用于计算增长）
+func (r *SalesRepository) GetYesterdayStats() (float64, int64, error) {
+	var totalAmount float64
+	var orderCount int64
+
+	yesterday := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+	err := r.db.Model(&model.SalesOrder{}).
+		Where("DATE(order_date) = ?", yesterday).
+		Where("status != ?", "cancelled").
+		Select("COALESCE(SUM(total_amount), 0)").
+		Scan(&totalAmount).Error
+	if err != nil {
+		return 0, 0, err
+	}
+
+	err = r.db.Model(&model.SalesOrder{}).
+		Where("DATE(order_date) = ?", yesterday).
+		Where("status != ?", "cancelled").
+		Count(&orderCount).Error
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return totalAmount, orderCount, nil
+}
+
+// CountByStatus 按状态统计销售订单数量
+func (r *SalesRepository) CountByStatus(status string) (int64, error) {
+	var count int64
+	err := r.db.Model(&model.SalesOrder{}).Where("status = ?", status).Count(&count).Error
+	return count, err
+}
+
 type LogisticsRepository struct {
 	db *gorm.DB
 }
@@ -140,4 +209,18 @@ func (r *LogisticsRepository) List(page, pageSize int, status string) ([]model.L
 
 func (r *LogisticsRepository) CreateTimeline(item *model.LogisticsTimeline) error {
 	return r.db.Create(item).Error
+}
+
+// UpdateStatusBySalesOrderID 根据销售订单ID更新物流状态
+func (r *LogisticsRepository) UpdateStatusBySalesOrderID(salesOrderID uint, status string) error {
+	return r.db.Model(&model.LogisticsOrder{}).
+		Where("sales_order_id = ?", salesOrderID).
+		Update("status", status).Error
+}
+
+// CountByStatus 按状态统计物流订单数量
+func (r *LogisticsRepository) CountByStatus(status string) (int64, error) {
+	var count int64
+	err := r.db.Model(&model.LogisticsOrder{}).Where("status = ?", status).Count(&count).Error
+	return count, err
 }

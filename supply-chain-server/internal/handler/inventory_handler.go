@@ -98,3 +98,31 @@ func (h *InventoryHandler) Stats(c *gin.Context) {
 	}
 	response.Success(c, stats)
 }
+
+func (h *InventoryHandler) Logs(c *gin.Context) {
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if err != nil || page < 1 {
+		page = 1
+	}
+	pageSize, err := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+	if err != nil || pageSize < 1 {
+		pageSize = 20
+	}
+
+	var productID uint
+	if pid := c.Query("productId"); pid != "" {
+		id, err := strconv.ParseUint(pid, 10, 32)
+		if err == nil {
+			productID = uint(id)
+		}
+	}
+	logType := c.Query("type")
+
+	logs, total, err := h.service.GetLogs(page, pageSize, productID, logType)
+	if err != nil {
+		response.ServerError(c, err.Error())
+		return
+	}
+
+	response.PageSuccess(c, logs, total, page, pageSize)
+}

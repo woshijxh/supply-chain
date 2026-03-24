@@ -209,8 +209,8 @@ export const mockProcurementOrders: ProcurementOrder[] = [
     remark: '急用',
     attachmentUrl: '',
     items: [
-      { id: '1', orderId: '1', productId: '1', productCode: 'PRD001', productName: '高精度传感器', quantity: 1000, unit: '个', unitPrice: 35.00, amount: 35000, receivedQty: 0 },
-      { id: '2', orderId: '1', productId: '2', productCode: 'PRD002', productName: '工业控制器', quantity: 100, unit: '台', unitPrice: 175.00, amount: 17500, receivedQty: 0 }
+      { id: 1, orderId: 1, productId: 1, productCode: 'PRD001', productName: '高精度传感器', quantity: 1000, unit: '个', unitPrice: 35.00, amount: 35000, receivedQty: 0 },
+      { id: 2, orderId: 1, productId: 2, productCode: 'PRD002', productName: '工业控制器', quantity: 100, unit: '台', unitPrice: 175.00, amount: 17500, receivedQty: 0 }
     ],
     createdAt: '2024-03-01',
     updatedAt: '2024-03-01'
@@ -229,7 +229,7 @@ export const mockProcurementOrders: ProcurementOrder[] = [
     remark: '',
     attachmentUrl: '',
     items: [
-      { id: '1', orderId: '2', productId: '4', productCode: 'PRD004', productName: '不锈钢板材', quantity: 300, unit: '张', unitPrice: 120.00, amount: 36000, receivedQty: 0 }
+      { id: 1, orderId: 2, productId: 4, productCode: 'PRD004', productName: '不锈钢板材', quantity: 300, unit: '张', unitPrice: 120.00, amount: 36000, receivedQty: 0 }
     ],
     createdAt: '2024-03-02',
     updatedAt: '2024-03-02'
@@ -248,7 +248,7 @@ export const mockProcurementOrders: ProcurementOrder[] = [
     remark: '',
     attachmentUrl: '',
     items: [
-      { id: '1', orderId: '3', productId: '3', productCode: 'PRD003', productName: '精密轴承', quantity: 100, unit: '套', unitPrice: 85.00, amount: 8500, receivedQty: 100 }
+      { id: 1, orderId: 3, productId: 3, productCode: 'PRD003', productName: '精密轴承', quantity: 100, unit: '套', unitPrice: 85.00, amount: 8500, receivedQty: 100 }
     ],
     createdAt: '2024-02-25',
     updatedAt: '2024-03-04'
@@ -274,9 +274,9 @@ export const mockSalesOrders: SalesOrder[] = [
     paymentStatus: 'paid',
     remark: '',
     items: [
-      { id: '1', orderId: '1', productId: '1', productCode: 'PRD001', productName: '高精度传感器', quantity: 200, unit: '个', unitPrice: 45.00, amount: 9000, discount: 0 },
-      { id: '2', orderId: '1', productId: '2', productCode: 'PRD002', productName: '工业控制器', quantity: 50, unit: '台', unitPrice: 320.00, amount: 16000, discount: 0 },
-      { id: '3', orderId: '1', productId: '5', productCode: 'PRD005', productName: '工业电机', quantity: 30, unit: '台', unitPrice: 680.00, amount: 20400, discount: 100 }
+      { id: '1', orderId: '1', productId: 1, productCode: 'PRD001', productName: '高精度传感器', quantity: 200, unit: '个', unitPrice: 45.00, amount: 9000, discount: 0 },
+      { id: '2', orderId: '1', productId: 2, productCode: 'PRD002', productName: '工业控制器', quantity: 50, unit: '台', unitPrice: 320.00, amount: 16000, discount: 0 },
+      { id: '3', orderId: '1', productId: 5, productCode: 'PRD005', productName: '工业电机', quantity: 30, unit: '台', unitPrice: 680.00, amount: 20400, discount: 100 }
     ],
     createdAt: '2024-03-05',
     updatedAt: '2024-03-05'
@@ -299,7 +299,7 @@ export const mockSalesOrders: SalesOrder[] = [
     paymentStatus: 'pending',
     remark: '需要发票',
     items: [
-      { id: '1', orderId: '2', productId: '3', productCode: 'PRD003', productName: '精密轴承', quantity: 100, unit: '套', unitPrice: 150.00, amount: 15000, discount: 0 }
+      { id: '1', orderId: '2', productId: 3, productCode: 'PRD003', productName: '精密轴承', quantity: 100, unit: '套', unitPrice: 150.00, amount: 15000, discount: 0 }
     ],
     createdAt: '2024-03-06',
     updatedAt: '2024-03-06'

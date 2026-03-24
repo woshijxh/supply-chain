@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"supply-chain-server/internal/model"
 	"supply-chain-server/internal/repository"
 	"supply-chain-server/pkg/database"
@@ -11,12 +12,19 @@ import (
 )
 
 type InventoryService struct {
-	repo        *repository.InventoryRepository
+	repo            *repository.InventoryRepository
 	procurementRepo *repository.ProcurementRepository
+	logRepo         *repository.InventoryLogRepository
+	productRepo     *repository.ProductRepository
 }
 
-func NewInventoryService(r *repository.InventoryRepository, p *repository.ProcurementRepository) *InventoryService {
-	return &InventoryService{repo: r, procurementRepo: p}
+func NewInventoryService(r *repository.InventoryRepository, p *repository.ProcurementRepository, lr *repository.InventoryLogRepository) *InventoryService {
+	return &InventoryService{repo: r, procurementRepo: p, logRepo: lr}
+}
+
+// SetProductRepository 设置产品仓库（用于获取产品名称）
+func (s *InventoryService) SetProductRepo(pr *repository.ProductRepository) {
+	s.productRepo = pr
 }
 
 func (s *InventoryService) Create(item *model.Inventory) error {
@@ -41,8 +49,18 @@ func (s *InventoryService) StockIn(productID, quantity uint, warehouse string) e
 	}
 
 	return database.DB.Transaction(func(tx *gorm.DB) error {
+		// 获取产品名称
+		var productName string
+		if s.productRepo != nil {
+			if product, err := s.productRepo.GetByID(productID); err == nil {
+				productName = product.Name
+			}
+		}
+
 		item, err := s.repo.GetByProductIDForUpdate(tx, productID, warehouse)
+		var beforeQty int
 		if err != nil {
+			beforeQty = 0
 			item = &model.Inventory{
 				ProductID:    productID,
 				Warehouse:    warehouse,
@@ -51,14 +69,24 @@ func (s *InventoryService) StockIn(productID, quantity uint, warehouse string) e
 				LockedQty:    0,
 				Status:       "normal",
 			}
-			return s.repo.CreateInTransaction(tx, item)
+			if err := s.repo.CreateInTransaction(tx, item); err != nil {
+				return err
+			}
+		} else {
+			beforeQty = item.Quantity
+			item.Quantity += int(quantity)
+			item.AvailableQty += int(quantity)
+			s.updateStatus(item)
+
+			if err := s.repo.UpdateInTransaction(tx, item); err != nil {
+				return err
+			}
 		}
 
-		item.Quantity += int(quantity)
-		item.AvailableQty += int(quantity)
-		s.updateStatus(item)
+		// 记录库存流水
+		s.createLog(productID, productName, "in", int(quantity), beforeQty, item.Quantity, warehouse, "", "", "", "手动入库")
 
-		return s.repo.UpdateInTransaction(tx, item)
+		return nil
 	})
 }
 
@@ -126,7 +154,7 @@ func (s *InventoryService) StockInWithProcurement(productID, quantity uint, ware
 		// 如果全部收货，自动更新状态为 received
 		if allReceived && order.Status != "received" {
 			order.Status = "received"
-			now := model.Date{time.Now()}
+			now := model.Date{Time: time.Now()}
 			order.ActualDate = &now
 			s.procurementRepo.Update(order)
 		}
@@ -141,6 +169,14 @@ func (s *InventoryService) StockOut(productID, quantity uint, warehouse string) 
 	}
 
 	return database.DB.Transaction(func(tx *gorm.DB) error {
+		// 获取产品名称
+		var productName string
+		if s.productRepo != nil {
+			if product, err := s.productRepo.GetByID(productID); err == nil {
+				productName = product.Name
+			}
+		}
+
 		item, err := s.repo.GetByProductIDForUpdate(tx, productID, warehouse)
 		if err != nil {
 			return errors.New("库存不存在")
@@ -150,11 +186,19 @@ func (s *InventoryService) StockOut(productID, quantity uint, warehouse string) 
 			return errors.New("库存不足")
 		}
 
+		beforeQty := item.Quantity
 		item.Quantity -= int(quantity)
 		item.AvailableQty -= int(quantity)
 		s.updateStatus(item)
 
-		return s.repo.UpdateInTransaction(tx, item)
+		if err := s.repo.UpdateInTransaction(tx, item); err != nil {
+			return err
+		}
+
+		// 记录库存流水
+		s.createLog(productID, productName, "out", int(quantity), beforeQty, item.Quantity, warehouse, "", "", "", "手动出库")
+
+		return nil
 	})
 }
 
@@ -186,4 +230,168 @@ func (s *InventoryService) GetStats() (map[string]interface{}, error) {
 		"low":    low,
 		"over":   over,
 	}, nil
+}
+
+// LockStock 锁定库存（创建销售订单时调用）
+func (s *InventoryService) LockStock(productID, quantity uint, warehouse string) error {
+	if warehouse == "" {
+		warehouse = "默认仓库"
+	}
+
+	return database.DB.Transaction(func(tx *gorm.DB) error {
+		// 获取产品名称
+		var productName string
+		if s.productRepo != nil {
+			if product, err := s.productRepo.GetByID(productID); err == nil {
+				productName = product.Name
+			}
+		}
+
+		item, err := s.repo.GetByProductIDForUpdate(tx, productID, warehouse)
+		if err != nil {
+			return errors.New("库存不存在")
+		}
+
+		if item.AvailableQty < int(quantity) {
+			return fmt.Errorf("库存不足，可用库存: %d，需要: %d", item.AvailableQty, quantity)
+		}
+
+		beforeQty := item.Quantity
+		item.LockedQty += int(quantity)
+		item.AvailableQty -= int(quantity)
+		s.updateStatus(item)
+
+		if err := s.repo.UpdateInTransaction(tx, item); err != nil {
+			return err
+		}
+
+		// 记录库存流水
+		s.createLog(productID, productName, "lock", int(quantity), beforeQty, item.Quantity, warehouse, "", "", "", "销售锁定")
+
+		return nil
+	})
+}
+
+// UnlockStock 解锁库存（取消销售订单时调用）
+func (s *InventoryService) UnlockStock(productID, quantity uint, warehouse string) error {
+	if warehouse == "" {
+		warehouse = "默认仓库"
+	}
+
+	return database.DB.Transaction(func(tx *gorm.DB) error {
+		// 获取产品名称
+		var productName string
+		if s.productRepo != nil {
+			if product, err := s.productRepo.GetByID(productID); err == nil {
+				productName = product.Name
+			}
+		}
+
+		item, err := s.repo.GetByProductIDForUpdate(tx, productID, warehouse)
+		if err != nil {
+			return errors.New("库存不存在")
+		}
+
+		if item.LockedQty < int(quantity) {
+			quantity = uint(item.LockedQty) // 防止解锁超过已锁定数量
+		}
+
+		beforeQty := item.Quantity
+		item.LockedQty -= int(quantity)
+		item.AvailableQty += int(quantity)
+		s.updateStatus(item)
+
+		if err := s.repo.UpdateInTransaction(tx, item); err != nil {
+			return err
+		}
+
+		// 记录库存流水
+		s.createLog(productID, productName, "unlock", int(quantity), beforeQty, item.Quantity, warehouse, "", "", "", "取消锁定")
+
+		return nil
+	})
+}
+
+// DeductLockedStock 扣减已锁定的库存（销售订单确认出库时调用）
+func (s *InventoryService) DeductLockedStock(productID, quantity uint, warehouse string) error {
+	if warehouse == "" {
+		warehouse = "默认仓库"
+	}
+
+	return database.DB.Transaction(func(tx *gorm.DB) error {
+		// 获取产品名称
+		var productName string
+		if s.productRepo != nil {
+			if product, err := s.productRepo.GetByID(productID); err == nil {
+				productName = product.Name
+			}
+		}
+
+		item, err := s.repo.GetByProductIDForUpdate(tx, productID, warehouse)
+		if err != nil {
+			return errors.New("库存不存在")
+		}
+
+		if item.LockedQty < int(quantity) {
+			return fmt.Errorf("锁定库存不足，已锁定: %d，需要扣减: %d", item.LockedQty, quantity)
+		}
+
+		beforeQty := item.Quantity
+		item.LockedQty -= int(quantity)
+		item.Quantity -= int(quantity)
+		s.updateStatus(item)
+
+		if err := s.repo.UpdateInTransaction(tx, item); err != nil {
+			return err
+		}
+
+		// 记录库存流水
+		s.createLog(productID, productName, "out", int(quantity), beforeQty, item.Quantity, warehouse, "", "", "", "销售出库")
+
+		return nil
+	})
+}
+
+// CheckStock 检查库存是否充足
+func (s *InventoryService) CheckStock(productID, quantity uint, warehouse string) (bool, int, error) {
+	if warehouse == "" {
+		warehouse = "默认仓库"
+	}
+
+	item, err := s.repo.GetByProductIDForUpdate(database.DB, productID, warehouse)
+	if err != nil {
+		return false, 0, errors.New("库存不存在")
+	}
+
+	return item.AvailableQty >= int(quantity), item.AvailableQty, nil
+}
+
+// createLog 创建库存流水记录
+func (s *InventoryService) createLog(productID uint, productName string, logType string, quantity, beforeQty, afterQty int, warehouse, refType, refNo, operator, remark string) {
+	if s.logRepo == nil {
+		return
+	}
+	log := &model.InventoryLog{
+		ProductID:   productID,
+		ProductName: productName,
+		Type:        logType,
+		Quantity:    quantity,
+		BeforeQty:   beforeQty,
+		AfterQty:    afterQty,
+		Warehouse:   warehouse,
+		RefType:     refType,
+		RefNo:       refNo,
+		Operator:    operator,
+		Remark:      remark,
+		CreatedAt:   time.Now(),
+	}
+	s.logRepo.Create(log)
+}
+
+// GetLogs 获取库存流水记录
+func (s *InventoryService) GetLogs(page, pageSize int, productID uint, logType string) ([]model.InventoryLog, int64, error) {
+	if s.logRepo == nil {
+		return []model.InventoryLog{}, 0, nil
+	}
+	return s.logRepo.List(page, pageSize, productID, logType)
 }

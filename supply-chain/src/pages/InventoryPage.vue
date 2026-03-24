@@ -6,8 +6,9 @@
     </header>
 
     <div class="toolbar">
-      <Button v-if="hasPermission(INVENTORY_PERMISSIONS.WRITE)" :label="t('inventory.stockIn')" icon="ri-login-box-line" severity="success" @click="openStockDialog('in')" />
-      <Button v-if="hasPermission(INVENTORY_PERMISSIONS.WRITE)" :label="t('inventory.stockOut')" icon="ri-logout-box-line" severity="warning" @click="openStockDialog('out')" />
+      <Button v-if="hasPermission(INVENTORY_PERMISSIONS.CREATE)" :label="t('inventory.stockIn')" icon="ri-login-box-line" severity="success" @click="openStockDialog('in')" />
+      <Button v-if="hasPermission(INVENTORY_PERMISSIONS.UPDATE)" :label="t('inventory.stockOut')" icon="ri-logout-box-line" severity="warning" @click="openStockDialog('out')" />
+      <Button label="库存流水" icon="ri-file-list-3-line" severity="info" @click="openLogDialog" />
       <Select v-model="statusFilter" :options="statusOptions" optionLabel="label" optionValue="value" :placeholder="t('common.status')" style="width: 150px" />
       <Select v-model="warehouseFilter" :options="warehouseOptions" optionLabel="label" optionValue="value" placeholder="仓库" style="width: 150px" />
     </div>
@@ -169,6 +170,39 @@
         <Button :label="t('common.confirm')" @click="handleStock" />
       </div>
     </Dialog>
+
+    <!-- 库存流水弹窗 -->
+    <Dialog v-model:visible="logDialogVisible" header="库存流水" :style="{ width: '900px' }">
+      <div class="log-filters" style="margin-bottom: 16px; display: flex; gap: 12px;">
+        <Select v-model="logTypeFilter" :options="logTypeOptions" optionLabel="label" optionValue="value" placeholder="类型" style="width: 120px" @change="fetchLogs" />
+      </div>
+      <DataTable :value="inventoryLogs" stripedRows :paginator="true" :rows="10" :loading="logLoading">
+        <Column field="createdAt" header="时间" style="width: 160px">
+          <template #body="{ data }">
+            {{ formatTime(data.createdAt) }}
+          </template>
+        </Column>
+        <Column field="productName" header="产品"></Column>
+        <Column field="type" header="类型" style="width: 80px">
+          <template #body="{ data }">
+            <span :class="['tag', getLogTypeClass(data.type)]">{{ getLogTypeText(data.type) }}</span>
+          </template>
+        </Column>
+        <Column field="quantity" header="数量" style="width: 80px">
+          <template #body="{ data }">
+            <span :class="{ 'text-success': data.type === 'in', 'text-danger': data.type === 'out' }">
+              {{ data.type === 'in' ? '+' : '-' }}{{ data.quantity }}
+            </span>
+          </template>
+        </Column>
+        <Column field="beforeQty" header="变更前" style="width: 80px"></Column>
+        <Column field="afterQty" header="变更后" style="width: 80px"></Column>
+        <Column field="warehouse" header="仓库"></Column>
+        <Column field="refNo" header="关联单号"></Column>
+        <Column field="operator" header="操作人"></Column>
+        <Column field="remark" header="备注"></Column>
+      </DataTable>
+    </Dialog>
   </div>
 </template>
 
@@ -176,8 +210,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from 'primevue/usetoast'
-import { inventoryApi, productApi, procurementApi } from '@/api'
+import { inventoryApi, productApi, procurementApi, inventoryLogApi } from '@/api'
 import type { InventoryItem } from '@/types'
+import type { InventoryLog } from '@/types'
 import { INVENTORY_PERMISSIONS } from '@/config/permissions'
 import { usePermission } from '@/utils/usePermission'
 
@@ -205,6 +240,20 @@ const stockForm = ref({
   procurementId: '',
   procurementItemId: ''
 })
+
+// 库存流水相关
+const logDialogVisible = ref(false)
+const logLoading = ref(false)
+const inventoryLogs = ref<InventoryLog[]>([])
+const logTypeFilter = ref('')
+
+const logTypeOptions = [
+  { label: '全部', value: '' },
+  { label: '入库', value: 'in' },
+  { label: '出库', value: 'out' },
+  { label: '锁定', value: 'lock' },
+  { label: '解锁', value: 'unlock' }
+]
 
 const statusOptions = [
   { label: t('common.all'), value: 'all' },
@@ -280,7 +329,19 @@ const fetchInventory = async () => {
   try {
     const res: any = await inventoryApi.list(1, 100, statusFilter.value === 'all' ? '' : statusFilter.value, warehouseFilter.value === 'all' ? '' : warehouseFilter.value)
     if (res.code === 0) {
-      inventoryItems.value = res.data.list || []
+      // 转换数据结构，将嵌套的product信息扁平化
+      inventoryItems.value = (res.data.list || []).map((item: any) => ({
+        ...item,
+        productCode: item.product?.code || '',
+        productName: item.product?.name || '',
+        sku: item.product?.sku || '',
+        category: item.product?.category || '',
+        costPrice: item.product?.costPrice || 0,
+        salePrice: item.product?.salePrice || 0,
+        minStock: item.product?.minStock || 0,
+        maxStock: item.product?.maxStock || 0,
+        unit: item.product?.unit || ''
+      }))
     }
   } catch (error) {
     console.error('获取库存列表失败', error)
@@ -389,12 +450,100 @@ onMounted(() => {
   fetchStats()
   fetchProducts()
 })
+
+// 库存流水方法
+const openLogDialog = () => {
+  logTypeFilter.value = ''
+  fetchLogs()
+  logDialogVisible.value = true
+}
+
+const fetchLogs = async () => {
+  logLoading.value = true
+  try {
+    const res: any = await inventoryLogApi.list(1, 100, '', logTypeFilter.value)
+    if (res.code === 0) {
+      inventoryLogs.value = res.data.list || []
+    }
+  } catch (error) {
+    console.error('获取库存流水失败', error)
+  } finally {
+    logLoading.value = false
+  }
+}
+
+const formatTime = (time: string) => {
+  if (!time) return ''
+  const date = new Date(time)
+  return date.toLocaleString('zh-CN')
+}
+
+const getLogTypeText = (type: string) => {
+  const map: Record<string, string> = {
+    in: '入库',
+    out: '出库',
+    lock: '锁定',
+    unlock: '解锁'
+  }
+  return map[type] || type
+}
+
+const getLogTypeClass = (type: string) => {
+  const map: Record<string, string> = {
+    in: 'success',
+    out: 'danger',
+    lock: 'warning',
+    unlock: 'info'
+  }
+  return map[type] || 'secondary'
+}
 </script>
 
 <style scoped>
 .low-stock {
   color: var(--warning);
   font-weight: 600;
+}
+
+.text-success {
+  color: var(--green-600);
+  font-weight: 500;
+}
+
+.text-danger {
+  color: var(--red-600);
+  font-weight: 500;
+}
+
+.tag {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.tag.success {
+  background: var(--green-100);
+  color: var(--green-700);
+}
+
+.tag.danger {
+  background: var(--red-100);
+  color: var(--red-700);
+}
+
+.tag.warning {
+  background: var(--yellow-100);
+  color: var(--yellow-700);
+}
+
+.tag.info {
+  background: var(--blue-100);
+  color: var(--blue-700);
+}
+
+.tag.secondary {
+  background: var(--gray-100);
+  color: var(--gray-700);
 }
 
 .inventory-detail {

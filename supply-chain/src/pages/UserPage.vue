@@ -6,7 +6,7 @@
     </header>
 
     <div class="toolbar">
-      <Button v-if="hasPermission(USER_PERMISSIONS.WRITE) || canCreate()" label="新增用户" icon="ri-add-line" @click="openDialog()" />
+      <Button v-if="hasPermission(USER_PERMISSIONS.CREATE) || canCreate()" label="新增用户" icon="ri-add-line" @click="openDialog()" />
       <div class="search-box">
         <InputText v-model="searchKey" placeholder="搜索用户名/邮箱" @keyup.enter="onSearch" />
         <Button icon="ri-search-line" severity="secondary" @click="onSearch" />
@@ -73,8 +73,8 @@
         </Column>
         <Column header="操作" style="width: 250px">
           <template #body="{ data }">
-            <Button v-if="hasPermission(USER_PERMISSIONS.WRITE) || canEdit()" text severity="info" icon="ri-edit-line" @click="openDialog(data)" />
-            <Button v-if="hasPermission(USER_PERMISSIONS.WRITE) || canDelete()" text severity="danger" icon="ri-delete-bin-line" @click="handleDelete(data)" />
+            <Button v-if="hasPermission(USER_PERMISSIONS.UPDATE) || canEdit()" text severity="info" icon="ri-edit-line" @click="openDialog(data)" />
+            <Button v-if="hasPermission(USER_PERMISSIONS.DELETE) || canDelete()" text severity="danger" icon="ri-delete-bin-line" @click="handleDelete(data)" />
             <Button v-if="isAdmin()" text severity="secondary" icon="ri-shield-line" @click="openRoleDialog(data)" title="分配角色" />
             <Button v-if="isAdmin()" text severity="warning" icon="ri-key-line" @click="openPermDialog(data)" title="分配权限" />
           </template>
@@ -249,7 +249,7 @@ function formatDate(date: string) {
 async function loadData() {
   loading.value = true
   try {
-    const res = await userApi.list(1, rows.value, searchKey.value)
+    const res: any = await userApi.list(1, rows.value, searchKey.value)
     if (res.code === 0) {
       users.value = res.data.list
       totalRecords.value = res.data.total
@@ -263,7 +263,7 @@ async function loadData() {
 
 async function loadRoles() {
   try {
-    const res = await roleApi.getAll()
+    const res: any = await roleApi.getAll()
     if (res.code === 0) {
       allRoles.value = res.data
     }
@@ -274,7 +274,7 @@ async function loadRoles() {
 
 async function loadPermissions() {
   try {
-    const res = await permissionApi.getAll()
+    const res: any = await permissionApi.getAll()
     if (res.code === 0) {
       allPermissions.value = res.data
     }
@@ -286,7 +286,7 @@ async function loadPermissions() {
 async function openPermDialog(user: User) {
   selectedUserId.value = Number(user.id)
   try {
-    const res = await userApi.getPermissions(String(user.id))
+    const res: any = await userApi.getPermissions(String(user.id))
     if (res.code === 0) {
       selectedPermIds.value = res.data.map((p: any) => p.id)
     }
@@ -374,7 +374,7 @@ async function handleDelete(user: User) {
 async function openRoleDialog(user: User) {
   selectedUserId.value = Number(user.id)
   try {
-    const res = await userApi.getRoles(String(user.id))
+    const res: any = await userApi.getRoles(String(user.id))
     if (res.code === 0) {
       selectedRoleIds.value = res.data.map((r: Role) => r.id)
     }
