@@ -18,11 +18,11 @@ type InventoryService struct {
 	productRepo     *repository.ProductRepository
 }
 
-func NewInventoryService(r *repository.InventoryRepository, p *repository.ProcurementRepository, lr *repository.InventoryLogRepository) *InventoryService {
-	return &InventoryService{repo: r, procurementRepo: p, logRepo: lr}
+func NewInventoryService(r *repository.InventoryRepository, p *repository.ProcurementRepository, lr *repository.InventoryLogRepository, pr *repository.ProductRepository) *InventoryService {
+	return &InventoryService{repo: r, procurementRepo: p, logRepo: lr, productRepo: pr}
 }
 
-// SetProductRepository 设置产品仓库（用于获取产品名称）
+// SetProductRepository 设置产品仓库（用于获取产品名称）- 保留用于向后兼容
 func (s *InventoryService) SetProductRepo(pr *repository.ProductRepository) {
 	s.productRepo = pr
 }
@@ -221,20 +221,23 @@ func (s *InventoryService) updateStatus(item *model.Inventory) {
 }
 
 func (s *InventoryService) GetStats() (map[string]interface{}, error) {
-	total, err := s.repo.CountAll()
-	if err != nil {
-		return nil, err
-	}
+	// 统计库存总量（所有库存数量之和）
+	totalQty, _ := s.repo.SumTotalQuantity()
 
+	// 统计各状态的 SKU 数
 	normal, _ := s.repo.CountByStatus("normal")
 	low, _ := s.repo.CountByStatus("low")
 	over, _ := s.repo.CountByStatus("over")
 
+	// 统计总 SKU 数（有库存记录的产品数）
+	totalSku, _ := s.repo.CountDistinctProducts()
+
 	return map[string]interface{}{
-		"total":  total,
-		"normal": normal,
-		"low":    low,
-		"over":   over,
+		"total":    totalQty,  // 库存总量
+		"normal":   normal,
+		"low":      low,
+		"over":     over,
+		"totalSku": totalSku,
 	}, nil
 }
 
@@ -400,4 +403,14 @@ func (s *InventoryService) GetLogs(page, pageSize int, productID uint, logType s
 		return []model.InventoryLog{}, 0, nil
 	}
 	return s.logRepo.List(page, pageSize, productID, logType)
+}
+
+// GetLowStockItems 获取低库存产品列表
+func (s *InventoryService) GetLowStockItems(limit int) ([]model.Inventory, error) {
+	return s.repo.GetLowStockItems(limit)
+}
+
+// GetInventoryDistribution 获取库存分布（按产品分类）
+func (s *InventoryService) GetInventoryDistribution() ([]map[string]interface{}, error) {
+	return s.repo.GetInventoryDistribution()
 }

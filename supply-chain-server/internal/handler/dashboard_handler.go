@@ -2,6 +2,7 @@ package handler
 
 import (
 	"math"
+	"strconv"
 	"supply-chain-server/internal/service"
 	"supply-chain-server/pkg/response"
 
@@ -113,4 +114,60 @@ func (h *DashboardHandler) Stats(c *gin.Context) {
 	}
 
 	response.Success(c, stats)
+}
+
+// TopProducts 获取热销产品
+func (h *DashboardHandler) TopProducts(c *gin.Context) {
+	products, err := h.salesService.GetTopProducts(5)
+	if err != nil {
+		response.ServerError(c, err.Error())
+		return
+	}
+	response.Success(c, products)
+}
+
+// RecentOrders 获取最近订单
+func (h *DashboardHandler) RecentOrders(c *gin.Context) {
+	orders, err := h.salesService.GetRecentOrders(5)
+	if err != nil {
+		response.ServerError(c, err.Error())
+		return
+	}
+	response.Success(c, orders)
+}
+
+// LowStockItems 获取库存预警列表
+func (h *DashboardHandler) LowStockItems(c *gin.Context) {
+	items, err := h.inventoryService.GetLowStockItems(5)
+	if err != nil {
+		response.ServerError(c, err.Error())
+		return
+	}
+	response.Success(c, items)
+}
+
+// SalesTrend 获取销售趋势
+func (h *DashboardHandler) SalesTrend(c *gin.Context) {
+	days := 7
+	if d := c.Query("days"); d != "" {
+		if parsed, err := strconv.Atoi(d); err == nil && parsed > 0 {
+			days = parsed
+		}
+	}
+	trend, err := h.salesService.GetSalesTrend(days)
+	if err != nil {
+		response.ServerError(c, err.Error())
+		return
+	}
+	response.Success(c, trend)
+}
+
+// InventoryDistribution 获取库存分布
+func (h *DashboardHandler) InventoryDistribution(c *gin.Context) {
+	distribution, err := h.inventoryService.GetInventoryDistribution()
+	if err != nil {
+		response.ServerError(c, err.Error())
+		return
+	}
+	response.Success(c, distribution)
 }

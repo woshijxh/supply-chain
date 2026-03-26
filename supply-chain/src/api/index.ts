@@ -125,7 +125,17 @@ export const logisticsApi = {
 
 export const dashboardApi = {
   stats: () =>
-    api.get('/dashboard/stats')
+    api.get('/dashboard/stats'),
+  topProducts: () =>
+    api.get('/dashboard/top-products'),
+  recentOrders: () =>
+    api.get('/dashboard/recent-orders'),
+  lowStockItems: () =>
+    api.get('/dashboard/low-stock'),
+  salesTrend: (days = 7) =>
+    api.get('/dashboard/sales-trend', { params: { days } }),
+  inventoryDistribution: () =>
+    api.get('/dashboard/inventory-distribution')
 }
 
 // 客户管理 API

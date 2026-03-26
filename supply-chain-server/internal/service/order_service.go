@@ -59,7 +59,8 @@ func (s *ProcurementService) UpdateStatus(id uint, status, attachmentURL, remark
 	if status == "received" {
 		now := model.Date{Time: time.Now()}
 		order.ActualDate = &now
-		// 自动入库：遍历采购明细，为每个产品入库
+		// 自动入库：先执行所有入库操作，成功后再更新收货数量
+		// 这样如果入库失败，可以重试而不会导致收货数量错误
 		for _, item := range order.Items {
 			if item.ProductID == 0 {
 				continue
@@ -70,13 +71,14 @@ func (s *ProcurementService) UpdateStatus(id uint, status, attachmentURL, remark
 				continue
 			}
 			// 调用库存服务入库
-			err := s.inventoryService.StockIn(item.ProductID, uint(pendingQty), order.Warehouse)
-			if err != nil {
+			if err := s.inventoryService.StockIn(item.ProductID, uint(pendingQty), order.Warehouse); err != nil {
 				return fmt.Errorf("入库失败: %w", err)
 			}
-			// 更新已收货数量
+			// 入库成功后更新已收货数量
 			item.ReceivedQty = item.Quantity
-			s.repo.UpdateItem(&item)
+			if err := s.repo.UpdateItem(&item); err != nil {
+				return fmt.Errorf("更新收货数量失败: %w", err)
+			}
 		}
 	}
 	return s.repo.Update(order)
@@ -354,4 +356,19 @@ func (s *LogisticsService) UpdateStatusBySalesOrderID(salesOrderID uint, status 
 // CountByStatus 按状态统计物流订单数量
 func (s *LogisticsService) CountByStatus(status string) (int64, error) {
 	return s.repo.CountByStatus(status)
+}
+
+// GetRecentOrders 获取最近销售订单
+func (s *SalesService) GetRecentOrders(limit int) ([]model.SalesOrder, error) {
+	return s.repo.GetRecentOrders(limit)
+}
+
+// GetTopProducts 获取热销产品
+func (s *SalesService) GetTopProducts(limit int) ([]map[string]interface{}, error) {
+	return s.repo.GetTopProducts(limit)
+}
+
+// GetSalesTrend 获取销售趋势
+func (s *SalesService) GetSalesTrend(days int) ([]map[string]interface{}, error) {
+	return s.repo.GetSalesTrend(days)
 }

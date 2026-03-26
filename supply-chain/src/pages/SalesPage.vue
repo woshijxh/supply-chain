@@ -11,7 +11,7 @@
     </div>
 
     <div class="card">
-      <DataTable :value="orders" stripedRows :paginator="true" :rows="10">
+      <DataTable :value="orders" stripedRows :paginator="true" :rows="10" scrollable scrollHeight="600px">
         <Column field="orderNo" :header="t('sales.orderNo')" style="width: 150px"></Column>
         <Column field="customerName" :header="t('sales.customer')"></Column>
         <Column field="orderDate" :header="t('sales.orderDate')"></Column>

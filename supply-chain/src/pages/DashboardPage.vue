@@ -268,54 +268,99 @@ const fetchStats = async () => {
 }
 
 const fetchTopProducts = async () => {
-  // 暂时使用模拟数据
-  topProducts.value = [
-    { name: 'iPhone 15 Pro Max 256GB', sales: 156800, quantity: 23 },
-    { name: 'iPhone 15 Pro 128GB', sales: 98500, quantity: 18 },
-    { name: 'MacBook Pro 14寸 M3', sales: 76200, quantity: 8 },
-    { name: 'AirPods Pro 2', sales: 45600, quantity: 45 },
-    { name: 'iPad Air 5', sales: 32800, quantity: 12 }
-  ]
+  try {
+    const res: any = await dashboardApi.topProducts()
+    if (res.code === 0) {
+      topProducts.value = res.data || []
+    }
+  } catch (error) {
+    console.error('获取热销产品失败', error)
+  }
 }
 
 const fetchRecentOrders = async () => {
-  // 暂时使用模拟数据
-  recentOrders.value = [
-    { orderNo: 'SO20240324001', customer: '北京科技有限公司', amount: 45800, status: '待确认' },
-    { orderNo: 'SO20240323002', customer: '上海电子商贸', amount: 28900, status: '已确认' },
-    { orderNo: 'SO20240323001', customer: '深圳智能设备', amount: 67200, status: '配送中' },
-    { orderNo: 'SO20240322003', customer: '广州数码广场', amount: 15800, status: '已完成' }
-  ]
+  try {
+    const res: any = await dashboardApi.recentOrders()
+    if (res.code === 0) {
+      recentOrders.value = (res.data || []).map((order: any) => ({
+        ...order,
+        status: getStatusText(order.status),
+        customer: order.customer_name || order.customer || '-',
+        amount: order.total_amount || order.amount || 0
+      }))
+    }
+  } catch (error) {
+    console.error('获取最近订单失败', error)
+  }
 }
 
 const fetchLowStockItems = async () => {
-  // 暂时使用模拟数据
-  lowStockItems.value = [
-    { name: 'iPhone 15 Pro 128GB', sku: 'IPHONE15PRO-128', quantity: 5, minStock: 20 },
-    { name: 'AirPods Pro 2', sku: 'AIRPODSPRO2', quantity: 8, minStock: 30 },
-    { name: 'MacBook Air M2', sku: 'MACAIR-M2-256', quantity: 2, minStock: 10 }
-  ]
+  try {
+    const res: any = await dashboardApi.lowStockItems()
+    if (res.code === 0) {
+      lowStockItems.value = (res.data || []).map((item: any) => ({
+        name: item.product?.name || item.productName || '未知产品',
+        sku: item.product?.sku || '',
+        quantity: item.quantity,
+        minStock: item.product?.minStock || 10
+      }))
+    }
+  } catch (error) {
+    console.error('获取库存预警失败', error)
+  }
+}
+
+const fetchSalesTrend = async () => {
+  try {
+    const res: any = await dashboardApi.salesTrend(salesPeriod.value === 'week' ? 7 : 30)
+    if (res.code === 0 && salesChart) {
+      const data = res.data || []
+      const labels = data.map((item: any) => {
+        const date = new Date(item.date)
+        return salesPeriod.value === 'week'
+          ? ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][date.getDay()]
+          : `${date.getDate()}日`
+      })
+      const values = data.map((item: any) => item.amount || 0)
+      salesChart.data.labels = labels
+      salesChart.data.datasets[0].data = values
+      salesChart.update()
+    }
+  } catch (error) {
+    console.error('获取销售趋势失败', error)
+  }
+}
+
+const fetchInventoryDistribution = async () => {
+  try {
+    const res: any = await dashboardApi.inventoryDistribution()
+    if (res.code === 0 && inventoryChart) {
+      const data = res.data || []
+      const labels = data.map((item: any) => item.category || '未分类')
+      const values = data.map((item: any) => item.total || 0)
+      inventoryChart.data.labels = labels
+      inventoryChart.data.datasets[0].data = values
+      inventoryChart.update()
+    }
+  } catch (error) {
+    console.error('获取库存分布失败', error)
+  }
+}
+
+const getStatusText = (status: string) => {
+  const map: Record<string, string> = {
+    'pending': '待确认',
+    'confirmed': '已确认',
+    'shipping': '配送中',
+    'completed': '已完成',
+    'cancelled': '已取消'
+  }
+  return map[status] || status
 }
 
 const changeSalesPeriod = (period: string) => {
   salesPeriod.value = period
-  updateSalesChart()
-}
-
-const updateSalesChart = () => {
-  if (!salesChart) return
-
-  const labels = salesPeriod.value === 'week'
-    ? ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
-    : Array.from({ length: 30 }, (_, i) => `${i + 1}日`)
-
-  const data = salesPeriod.value === 'week'
-    ? [45000, 52000, 38000, 65000, 72000, 88000, 156800]
-    : Array.from({ length: 30 }, () => Math.floor(Math.random() * 80000) + 20000)
-
-  salesChart.data.labels = labels
-  salesChart.data.datasets[0].data = data
-  salesChart.update()
+  fetchSalesTrend()
 }
 
 const initCharts = () => {
@@ -323,10 +368,10 @@ const initCharts = () => {
     salesChart = new Chart(salesChartRef.value, {
       type: 'line',
       data: {
-        labels: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+        labels: [],
         datasets: [{
           label: '销售额',
-          data: [45000, 52000, 38000, 65000, 72000, 88000, 156800],
+          data: [],
           borderColor: '#3b82f6',
           backgroundColor: 'rgba(59, 130, 246, 0.1)',
           tension: 0.4,
@@ -357,9 +402,9 @@ const initCharts = () => {
     inventoryChart = new Chart(inventoryChartRef.value, {
       type: 'doughnut',
       data: {
-        labels: ['iPhone', 'Mac', 'iPad', 'AirPods', '配件'],
+        labels: [],
         datasets: [{
-          data: [45, 20, 15, 12, 8],
+          data: [],
           backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#a855f7', '#6b7280'],
           borderWidth: 0
         }]
@@ -388,6 +433,8 @@ onMounted(() => {
   fetchRecentOrders()
   fetchLowStockItems()
   initCharts()
+  fetchSalesTrend()
+  fetchInventoryDistribution()
 })
 
 onBeforeUnmount(() => {

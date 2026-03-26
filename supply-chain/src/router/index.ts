@@ -46,6 +46,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '库存管理', icon: 'ri-store-2-line', requiresAuth: true, permission: 'inventory:read' }
   },
   {
+    path: '/inventory/logs',
+    name: 'inventory-logs',
+    component: () => import('@/pages/InventoryLogPage.vue'),
+    meta: { title: '库存流水', icon: 'ri-file-list-3-line', requiresAuth: true, permission: 'inventory:read' }
+  },
+  {
     path: '/sales',
     name: 'sales',
     component: () => import('@/pages/SalesPage.vue'),

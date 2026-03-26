@@ -224,3 +224,37 @@ func (r *LogisticsRepository) CountByStatus(status string) (int64, error) {
 	err := r.db.Model(&model.LogisticsOrder{}).Where("status = ?", status).Count(&count).Error
 	return count, err
 }
+
+// GetRecentOrders 获取最近销售订单
+func (r *SalesRepository) GetRecentOrders(limit int) ([]model.SalesOrder, error) {
+	var orders []model.SalesOrder
+	err := r.db.Preload("Items").Order("created_at DESC").Limit(limit).Find(&orders).Error
+	return orders, err
+}
+
+// GetTopProducts 获取热销产品（按销售金额排序）
+func (r *SalesRepository) GetTopProducts(limit int) ([]map[string]interface{}, error) {
+	var results []map[string]interface{}
+	err := r.db.Table("sales_order_items").
+		Select("product_name as name, SUM(quantity) as quantity, SUM(amount) as sales").
+		Joins("JOIN sales_orders ON sales_orders.id = sales_order_items.order_id").
+		Where("sales_orders.status != ?", "cancelled").
+		Group("product_name").
+		Order("sales DESC").
+		Limit(limit).
+		Find(&results).Error
+	return results, err
+}
+
+// GetSalesTrend 获取销售趋势（近N天）
+func (r *SalesRepository) GetSalesTrend(days int) ([]map[string]interface{}, error) {
+	var results []map[string]interface{}
+	err := r.db.Table("sales_orders").
+		Select("DATE(order_date) as date, SUM(total_amount) as amount, COUNT(*) as count").
+		Where("status != ?", "cancelled").
+		Where("order_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)", days).
+		Group("DATE(order_date)").
+		Order("date ASC").
+		Find(&results).Error
+	return results, err
+}

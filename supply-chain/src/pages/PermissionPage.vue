@@ -25,6 +25,8 @@
         v-model:first="first"
         :totalRecords="totalRecords"
         @page="onPage"
+        scrollable
+        scrollHeight="600px"
       >
         <Column field="id" header="ID" style="width: 80px"></Column>
         <Column field="name" header="权限名称" style="width: 150px"></Column>

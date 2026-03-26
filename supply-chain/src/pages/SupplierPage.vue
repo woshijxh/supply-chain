@@ -24,6 +24,8 @@
         v-model:first="first"
         :totalRecords="totalRecords"
         @page="onPage"
+        scrollable
+        scrollHeight="600px"
       >
         <Column field="code" :header="t('supplier.code')" style="width: 120px"></Column>
         <Column field="name" :header="t('supplier.name')" style="width: 200px"></Column>

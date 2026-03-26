@@ -14,59 +14,120 @@
         </div>
       </div>
       <nav class="menu">
+        <!-- 仪表盘 -->
         <RouterLink v-if="canViewDashboard" to="/" class="menu-item" :class="{ active: isActive('/') }">
           <i class="ri-dashboard-3-line"></i>
           <span>{{ t('menu.dashboard') }}</span>
         </RouterLink>
-        <RouterLink v-if="canViewSuppliers" to="/suppliers" class="menu-item" :class="{ active: isActive('/suppliers') }">
-          <i class="ri-building-line"></i>
-          <span>{{ t('menu.suppliers') }}</span>
-        </RouterLink>
-        <RouterLink v-if="canViewCustomers" to="/customers" class="menu-item" :class="{ active: isActive('/customers') }">
-          <i class="ri-user-heart-line"></i>
-          <span>客户管理</span>
-        </RouterLink>
-        <RouterLink v-if="canViewProducts" to="/products" class="menu-item" :class="{ active: isActive('/products') }">
-          <i class="ri-box-3-line"></i>
-          <span>产品管理</span>
-        </RouterLink>
-        <RouterLink v-if="canViewProcurement" to="/procurement" class="menu-item" :class="{ active: isActive('/procurement') }">
-          <i class="ri-shopping-cart-line"></i>
-          <span>{{ t('menu.procurement') }}</span>
-        </RouterLink>
-        <RouterLink v-if="canViewInventory" to="/inventory" class="menu-item" :class="{ active: isActive('/inventory') }">
-          <i class="ri-store-2-line"></i>
-          <span>{{ t('menu.inventory') }}</span>
-        </RouterLink>
-        <RouterLink v-if="canViewSales" to="/sales" class="menu-item" :class="{ active: isActive('/sales') }">
-          <i class="ri-file-list-3-line"></i>
-          <span>{{ t('menu.sales') }}</span>
-        </RouterLink>
-        <RouterLink v-if="canViewSales" to="/returns" class="menu-item" :class="{ active: isActive('/returns') }">
-          <i class="ri-arrow-go-back-line"></i>
-          <span>退货管理</span>
-        </RouterLink>
-        <RouterLink v-if="canViewLogistics" to="/logistics" class="menu-item" :class="{ active: isActive('/logistics') }">
-          <i class="ri-truck-line"></i>
-          <span>{{ t('menu.logistics') }}</span>
-        </RouterLink>
+
+        <!-- 基础数据 -->
+        <div v-if="canViewSuppliers || canViewCustomers || canViewProducts" class="menu-group">
+          <div class="menu-group-title" @click="toggleGroup('base')">
+            <i class="ri-database-2-line"></i>
+            <span>基础数据</span>
+            <i class="ri-arrow-down-s-line menu-arrow" :class="{ expanded: expandedGroups.base }"></i>
+          </div>
+          <div class="menu-group-items" :class="{ expanded: expandedGroups.base }">
+            <RouterLink v-if="canViewSuppliers" to="/suppliers" class="menu-sub-item" :class="{ active: isActive('/suppliers') }">
+              <i class="ri-building-line"></i>
+              <span>{{ t('menu.suppliers') }}</span>
+            </RouterLink>
+            <RouterLink v-if="canViewCustomers" to="/customers" class="menu-sub-item" :class="{ active: isActive('/customers') }">
+              <i class="ri-user-heart-line"></i>
+              <span>客户管理</span>
+            </RouterLink>
+            <RouterLink v-if="canViewProducts" to="/products" class="menu-sub-item" :class="{ active: isActive('/products') }">
+              <i class="ri-box-3-line"></i>
+              <span>产品管理</span>
+            </RouterLink>
+          </div>
+        </div>
+
+        <!-- 采购管理 -->
+        <div v-if="canViewProcurement" class="menu-group">
+          <div class="menu-group-title" @click="toggleGroup('procurement')">
+            <i class="ri-shopping-cart-line"></i>
+            <span>采购管理</span>
+            <i class="ri-arrow-down-s-line menu-arrow" :class="{ expanded: expandedGroups.procurement }"></i>
+          </div>
+          <div class="menu-group-items" :class="{ expanded: expandedGroups.procurement }">
+            <RouterLink to="/procurement" class="menu-sub-item" :class="{ active: isActive('/procurement') }">
+              <i class="ri-file-list-3-line"></i>
+              <span>采购订单</span>
+            </RouterLink>
+          </div>
+        </div>
+
+        <!-- 库存管理 -->
+        <div v-if="canViewInventory" class="menu-group">
+          <div class="menu-group-title" @click="toggleGroup('inventory')">
+            <i class="ri-store-2-line"></i>
+            <span>库存管理</span>
+            <i class="ri-arrow-down-s-line menu-arrow" :class="{ expanded: expandedGroups.inventory }"></i>
+          </div>
+          <div class="menu-group-items" :class="{ expanded: expandedGroups.inventory }">
+            <RouterLink to="/inventory" class="menu-sub-item" :class="{ active: isActive('/inventory') }">
+              <i class="ri-stack-line"></i>
+              <span>库存查询</span>
+            </RouterLink>
+            <RouterLink to="/inventory/logs" class="menu-sub-item" :class="{ active: isActive('/inventory/logs') }">
+              <i class="ri-file-list-3-line"></i>
+              <span>库存流水</span>
+            </RouterLink>
+          </div>
+        </div>
+
+        <!-- 销售管理 -->
+        <div v-if="canViewSales || canViewLogistics" class="menu-group">
+          <div class="menu-group-title" @click="toggleGroup('sales')">
+            <i class="ri-handbag-line"></i>
+            <span>销售管理</span>
+            <i class="ri-arrow-down-s-line menu-arrow" :class="{ expanded: expandedGroups.sales }"></i>
+          </div>
+          <div class="menu-group-items" :class="{ expanded: expandedGroups.sales }">
+            <RouterLink v-if="canViewSales" to="/sales" class="menu-sub-item" :class="{ active: isActive('/sales') }">
+              <i class="ri-file-list-3-line"></i>
+              <span>销售订单</span>
+            </RouterLink>
+            <RouterLink v-if="canViewSales" to="/returns" class="menu-sub-item" :class="{ active: isActive('/returns') }">
+              <i class="ri-arrow-go-back-line"></i>
+              <span>退货管理</span>
+            </RouterLink>
+            <RouterLink v-if="canViewLogistics" to="/logistics" class="menu-sub-item" :class="{ active: isActive('/logistics') }">
+              <i class="ri-truck-line"></i>
+              <span>物流跟踪</span>
+            </RouterLink>
+          </div>
+        </div>
+
+        <!-- 商品追溯 -->
         <RouterLink v-if="canViewTrace" to="/trace" class="menu-item" :class="{ active: isActive('/trace') }">
           <i class="ri-search-eye-line"></i>
           <span>商品追溯</span>
         </RouterLink>
-        <div v-if="canViewUsers" class="menu-divider"></div>
-        <RouterLink v-if="canViewUsers" to="/users" class="menu-item" :class="{ active: isActive('/users') }">
-          <i class="ri-user-settings-line"></i>
-          <span>用户管理</span>
-        </RouterLink>
-        <RouterLink v-if="canViewRoles" to="/roles" class="menu-item" :class="{ active: isActive('/roles') }">
-          <i class="ri-shield-line"></i>
-          <span>角色管理</span>
-        </RouterLink>
-        <RouterLink v-if="canViewPermissions" to="/permissions" class="menu-item" :class="{ active: isActive('/permissions') }">
-          <i class="ri-lock-line"></i>
-          <span>权限管理</span>
-        </RouterLink>
+
+        <!-- 系统管理 -->
+        <div v-if="canViewUsers || canViewRoles || canViewPermissions" class="menu-group">
+          <div class="menu-group-title" @click="toggleGroup('system')">
+            <i class="ri-settings-4-line"></i>
+            <span>系统管理</span>
+            <i class="ri-arrow-down-s-line menu-arrow" :class="{ expanded: expandedGroups.system }"></i>
+          </div>
+          <div class="menu-group-items" :class="{ expanded: expandedGroups.system }">
+            <RouterLink v-if="canViewUsers" to="/users" class="menu-sub-item" :class="{ active: isActive('/users') }">
+              <i class="ri-user-settings-line"></i>
+              <span>用户管理</span>
+            </RouterLink>
+            <RouterLink v-if="canViewRoles" to="/roles" class="menu-sub-item" :class="{ active: isActive('/roles') }">
+              <i class="ri-shield-line"></i>
+              <span>角色管理</span>
+            </RouterLink>
+            <RouterLink v-if="canViewPermissions" to="/permissions" class="menu-sub-item" :class="{ active: isActive('/permissions') }">
+              <i class="ri-lock-line"></i>
+              <span>权限管理</span>
+            </RouterLink>
+          </div>
+        </div>
       </nav>
       <div class="sidebar-footer">
         <div class="user-info">
@@ -196,8 +257,27 @@ const canViewUsers = computed(() => userStore.hasPermission('user:read'))
 const canViewRoles = computed(() => userStore.hasPermission('role:read'))
 const canViewPermissions = computed(() => userStore.hasPermission('permission:read'))
 
+// 菜单分组展开状态
+const expandedGroups = ref<Record<string, boolean>>({
+  base: true,
+  procurement: true,
+  inventory: true,
+  sales: true,
+  system: true
+})
+
+// 切换分组展开状态
+const toggleGroup = (group: string) => {
+  expandedGroups.value[group] = !expandedGroups.value[group]
+}
+
 const isLoginPage = computed(() => route.path === '/login')
-const isActive = (path: string) => route.path === path
+const isActive = (path: string) => {
+  if (path === '/') {
+    return route.path === '/'
+  }
+  return route.path === path || route.path.startsWith(path + '/')
+}
 
 // 标签点击
 const handleTabClick = (path: string) => {

@@ -197,6 +197,84 @@ html, body {
   margin: 8px 16px;
 }
 
+// 菜单分组样式
+.menu-group {
+  margin-bottom: 4px;
+}
+
+.menu-group-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+
+  i:first-child {
+    font-size: 18px;
+  }
+
+  span {
+    flex: 1;
+  }
+
+  &:hover {
+    background: var(--border-light);
+    color: var(--text);
+  }
+}
+
+.menu-arrow {
+  font-size: 18px;
+  transition: transform 0.2s ease;
+
+  &.expanded {
+    transform: rotate(180deg);
+  }
+}
+
+.menu-group-items {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+
+  &.expanded {
+    max-height: 500px;
+  }
+}
+
+.menu-sub-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px 10px 44px;
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+
+  i {
+    font-size: 16px;
+  }
+
+  &:hover {
+    background: var(--border-light);
+    color: var(--text);
+  }
+
+  &.active {
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+}
+
 .sidebar-footer {
   padding: 16px;
   border-top: 1px solid var(--border);
@@ -567,4 +645,22 @@ html, body {
   margin-top: 20px;
   padding-top: 20px;
   border-top: 1px solid var(--border);
+}
+
+// DataTable 居中样式
+:deep(.p-datatable) {
+  .p-datatable-thead > tr > th,
+  .p-datatable-tbody > tr > td {
+    text-align: center;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  .p-datatable-wrapper {
+    overflow-x: auto;
+  }
+
+  table {
+    min-width: 100%;
+  }
 }

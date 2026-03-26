@@ -10,7 +10,7 @@
         <div class="toolbar">
           <Select v-model="salesStatusFilter" :options="statusOptions" optionLabel="label" optionValue="value" placeholder="状态筛选" style="width: 150px" />
         </div>
-        <DataTable :value="salesReturns" stripedRows :loading="salesLoading" :paginator="true" :rows="10">
+        <DataTable :value="salesReturns" stripedRows :loading="salesLoading" :paginator="true" :rows="10" scrollable scrollHeight="400px">
           <Column field="returnNo" header="退货单号" style="width: 150px"></Column>
           <Column field="salesOrderNo" header="销售单号" style="width: 150px"></Column>
           <Column field="customerName" header="客户"></Column>
@@ -48,7 +48,7 @@
         <div class="toolbar">
           <Select v-model="procurementStatusFilter" :options="statusOptions" optionLabel="label" optionValue="value" placeholder="状态筛选" style="width: 150px" />
         </div>
-        <DataTable :value="procurementReturns" stripedRows :loading="procurementLoading" :paginator="true" :rows="10">
+        <DataTable :value="procurementReturns" stripedRows :loading="procurementLoading" :paginator="true" :rows="10" scrollable scrollHeight="400px">
           <Column field="returnNo" header="退货单号" style="width: 150px"></Column>
           <Column field="procurementOrderNo" header="采购单号" style="width: 150px"></Column>
           <Column field="supplierName" header="供应商"></Column>

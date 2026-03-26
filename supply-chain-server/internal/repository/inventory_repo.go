@@ -74,3 +74,39 @@ func (r *InventoryRepository) CountAll() (int64, error) {
 	err := r.db.Model(&model.Inventory{}).Count(&count).Error
 	return count, err
 }
+
+// GetLowStockItems 获取低库存产品列表
+func (r *InventoryRepository) GetLowStockItems(limit int) ([]model.Inventory, error) {
+	var items []model.Inventory
+	err := r.db.Preload("Product").
+		Where("status = ?", "low").
+		Order("quantity ASC").
+		Limit(limit).
+		Find(&items).Error
+	return items, err
+}
+
+// GetInventoryDistribution 获取库存分布（按产品分类）
+func (r *InventoryRepository) GetInventoryDistribution() ([]map[string]interface{}, error) {
+	var results []map[string]interface{}
+	err := r.db.Table("inventories").
+		Select("products.category as category, SUM(inventories.quantity) as total").
+		Joins("JOIN products ON products.id = inventories.product_id").
+		Group("products.category").
+		Find(&results).Error
+	return results, err
+}
+
+// SumTotalQuantity 统计库存总量
+func (r *InventoryRepository) SumTotalQuantity() (int64, error) {
+	var total int64
+	err := r.db.Model(&model.Inventory{}).Select("COALESCE(SUM(quantity), 0)").Scan(&total).Error
+	return total, err
+}
+
+// CountDistinctProducts 统计有库存的产品数（SKU数）
+func (r *InventoryRepository) CountDistinctProducts() (int64, error) {
+	var count int64
+	err := r.db.Model(&model.Inventory{}).Distinct("product_id").Count(&count).Error
+	return count, err
+}

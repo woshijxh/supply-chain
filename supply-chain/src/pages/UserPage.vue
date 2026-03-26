@@ -25,6 +25,8 @@
         v-model:first="first"
         :totalRecords="totalRecords"
         @page="onPage"
+        scrollable
+        scrollHeight="600px"
       >
         <Column field="id" header="ID" style="width: 80px"></Column>
         <Column field="username" header="用户名" style="width: 150px"></Column>
@@ -430,25 +432,10 @@ onMounted(() => {
   padding: 24px;
 }
 
-.page-header {
-  margin-bottom: 24px;
-}
-
-.page-title {
-  font-size: 24px;
-  font-weight: 600;
-  margin: 0 0 8px;
-}
-
-.page-subtitle {
-  color: #666;
-  margin: 0;
-}
-
 .toolbar {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 
   .search-box {
     display: flex;
@@ -457,60 +444,6 @@ onMounted(() => {
     :deep(.p-inputtext) {
       width: 200px;
     }
-  }
-}
-
-.card {
-  background: #fff;
-  border-radius: 8px;
-  padding: 16px;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-
-  &.full-width {
-    grid-column: span 2;
-  }
-}
-
-.form-label {
-  font-weight: 500;
-  color: #333;
-}
-
-.tag {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-
-  &.success {
-    background: #dcfce7;
-    color: #166534;
-  }
-
-  &.warning {
-    background: #fef3c7;
-    color: #92400e;
-  }
-
-  &.info {
-    background: #dbeafe;
-    color: #1e40af;
-  }
-
-  &.danger {
-    background: #fee2e2;
-    color: #991b1b;
   }
 }
 
@@ -537,7 +470,7 @@ onMounted(() => {
 
     .perm-desc {
       font-size: 12px;
-      color: #666;
+      color: var(--text-muted);
     }
   }
 }
@@ -555,18 +488,18 @@ onMounted(() => {
   align-items: center;
 
   .perm-tag {
-    background: #e0e7ff;
-    color: #3730a3;
+    background: rgba(99, 102, 241, 0.1);
+    color: #4f46e5;
     padding: 2px 6px;
-    border-radius: 3px;
+    border-radius: 4px;
     font-size: 11px;
   }
 
   .perm-more {
-    background: #fef3c7;
-    color: #92400e;
+    background: rgba(245, 158, 11, 0.1);
+    color: #d97706;
     padding: 2px 6px;
-    border-radius: 3px;
+    border-radius: 4px;
     font-size: 11px;
     cursor: pointer;
     font-weight: 500;

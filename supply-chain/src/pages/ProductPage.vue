@@ -20,6 +20,8 @@
         :loading="loading"
         :paginator="true"
         :rows="10"
+        scrollable
+        scrollHeight="600px"
       >
         <Column field="code" header="产品编码" style="width: 120px"></Column>
         <Column field="name" header="产品名称" style="width: 200px"></Column>
@@ -291,54 +293,5 @@ onMounted(() => {
 .search-box {
   display: flex;
   gap: 8px;
-}
-
-.card {
-  background: var(--card-bg);
-  border-radius: var(--radius-lg);
-  padding: 20px;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.form-label {
-  font-weight: 500;
-  font-size: 14px;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
-}
-
-.tag {
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.tag.success {
-  background: var(--green-100);
-  color: var(--green-700);
-}
-
-.tag.warning {
-  background: var(--yellow-100);
-  color: var(--yellow-700);
 }
 </style>

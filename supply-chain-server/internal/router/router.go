@@ -43,8 +43,7 @@ func Setup() *gin.Engine {
 	permService := service.NewPermissionService(permRepo)
 	userProfileService := service.NewUserProfileService(userProfileRepo, userRepo)
 	supplierService := service.NewSupplierService(supplierRepo)
-	inventoryService := service.NewInventoryService(inventoryRepo, procurementRepo, inventoryLogRepo)
-	inventoryService.SetProductRepo(productRepo) // 设置产品仓库用于库存流水记录
+	inventoryService := service.NewInventoryService(inventoryRepo, procurementRepo, inventoryLogRepo, productRepo)
 	procurementService := service.NewProcurementService(procurementRepo, inventoryService)
 	logisticsService := service.NewLogisticsService(logisticsRepo)
 	salesService := service.NewSalesService(salesRepo, inventoryService, logisticsService)
@@ -168,8 +167,13 @@ func Setup() *gin.Engine {
 		protected.PUT("/logistics/:id/status", middleware.RBACAuth("logistics", "update"), logisticsHandler.UpdateStatus)
 		protected.DELETE("/logistics/:id", middleware.RBACAuth("logistics", "delete"), logisticsHandler.Delete)
 
-		// 仪表盘
-		protected.GET("/dashboard/stats", middleware.RBACAuth("dashboard", "read"), dashboardHandler.Stats)
+		// 仪表盘（不需要权限验证，只读数据）
+		protected.GET("/dashboard/stats", dashboardHandler.Stats)
+		protected.GET("/dashboard/top-products", dashboardHandler.TopProducts)
+		protected.GET("/dashboard/recent-orders", dashboardHandler.RecentOrders)
+		protected.GET("/dashboard/low-stock", dashboardHandler.LowStockItems)
+		protected.GET("/dashboard/sales-trend", dashboardHandler.SalesTrend)
+		protected.GET("/dashboard/inventory-distribution", dashboardHandler.InventoryDistribution)
 
 		// 商品追溯
 		protected.GET("/trace", middleware.RBACAuth("trace", "read"), traceHandler.Trace)
